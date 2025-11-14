@@ -237,9 +237,24 @@ const AppContent: React.FC = () => {
     checkRefillNotifications();
   };
 
-  const handleCloseRefillNotifications = () => {
-    setShowRefillNotifications(false);
-    setRefillNotifications([]);
+  const handleCloseRefillNotifications = async () => {
+    if (!user || refillNotifications.length === 0) return;
+
+    try {
+      const notificationIds = refillNotifications.map(n => n.id);
+      const { error } = await supabase
+        .from('refill_notifications')
+        .update({ is_read: true })
+        .in('id', notificationIds);
+
+      if (error) throw error;
+
+      setShowRefillNotifications(false);
+      setRefillNotifications([]);
+    } catch (error) {
+      console.error('Error marking refill notifications as read:', error);
+      setShowRefillNotifications(false);
+    }
   };
 
   const handleLoginSuccess = () => {
