@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, UserSquare2, Users, Plus, X, Pill, Calendar } from 'lucide-react';
+import { Building2, UserSquare2, Users, Plus, X, Pill, Calendar, ArrowLeft, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, Clinic, Provider, User as DBUser, Drug } from '../lib/supabase';
 
 interface ScribeInterfaceProps {
   onLogout: () => void;
+  onBack?: () => void;
   onContinue: (patientId: string) => void;
 }
 
-const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout, onContinue }) => {
+const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout, onBack, onContinue }) => {
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -230,16 +231,29 @@ const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout, onContinue 
       <div className="max-w-6xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#531B93' }}>
-              Scribe Interface
-            </h1>
+            <div className="flex items-center gap-3">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Back to Dashboard"
+                >
+                  <ArrowLeft className="w-6 h-6" style={{ color: '#531B93' }} />
+                </button>
+              )}
+              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#531B93' }}>
+                Scribe Interface
+              </h1>
+            </div>
             <button
               onClick={onLogout}
-              className="px-4 py-2 text-white rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors"
               style={{ backgroundColor: '#009193' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
             >
+              <LogOut className="w-4 h-4" />
               Logout
             </button>
           </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import ProviderDashboard from './pages/ProviderDashboard';
+import ScribeDashboard from './pages/ScribeDashboard';
 import ScribeInterface from './pages/ScribeInterface';
 import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
@@ -9,7 +10,7 @@ import NotificationModal from './components/NotificationModal';
 import RefillNotificationModal from './components/RefillNotificationModal';
 import { supabase } from './lib/supabase';
 
-type Screen = 'login' | 'providerDashboard' | 'scribeInterface' | 'patientDetails' | 'programEnrollment';
+type Screen = 'login' | 'providerDashboard' | 'scribeDashboard' | 'scribeInterface' | 'patientDetails' | 'programEnrollment';
 
 interface Notification {
   id: string;
@@ -43,7 +44,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (!loading && user) {
       if (user.user_role === 'scribe') {
-        setCurrentScreen('scribeInterface');
+        setCurrentScreen('scribeDashboard');
       } else if (user.user_role === 'provider') {
         setCurrentScreen('providerDashboard');
       } else {
@@ -244,7 +245,7 @@ const AppContent: React.FC = () => {
   const handleLoginSuccess = () => {
     if (user) {
       if (user.user_role === 'scribe') {
-        setCurrentScreen('scribeInterface');
+        setCurrentScreen('scribeDashboard');
       } else if (user.user_role === 'provider') {
         setCurrentScreen('providerDashboard');
       } else {
@@ -258,9 +259,23 @@ const AppContent: React.FC = () => {
     setCurrentScreen('patientDetails');
   };
 
+  const handleScribePatientSelected = (patientId: string) => {
+    setSelectedPatientId(patientId);
+    setCurrentScreen('scribeInterface');
+  };
+
   const handleBackToDashboard = () => {
     setSelectedPatientId(null);
-    setCurrentScreen('providerDashboard');
+    if (user?.user_role === 'provider') {
+      setCurrentScreen('providerDashboard');
+    } else if (user?.user_role === 'scribe') {
+      setCurrentScreen('scribeDashboard');
+    }
+  };
+
+  const handleBackToScribeDashboard = () => {
+    setSelectedPatientId(null);
+    setCurrentScreen('scribeDashboard');
   };
 
   const handleScribeContinue = (patientId: string) => {
@@ -290,8 +305,12 @@ const AppContent: React.FC = () => {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
+  if (currentScreen === 'scribeDashboard') {
+    return <ScribeDashboard onPatientSelect={handleScribePatientSelected} onLogout={handleLogout} />;
+  }
+
   if (currentScreen === 'scribeInterface') {
-    return <ScribeInterface onLogout={handleLogout} onContinue={handleScribeContinue} />;
+    return <ScribeInterface onLogout={handleLogout} onBack={handleBackToScribeDashboard} onContinue={handleScribeContinue} />;
   }
 
   if (currentScreen === 'providerDashboard') {
