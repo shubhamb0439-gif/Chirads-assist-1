@@ -33,6 +33,32 @@ const AppContent: React.FC = () => {
     }
   }, [user, loading]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('program_notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'program_notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotification = payload.new as Notification;
+          setNotifications((prev) => [newNotification, ...prev]);
+          setShowNotifications(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const checkUserEnrollment = async () => {
     if (!user) return;
 
