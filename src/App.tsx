@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import RoleSelection from './pages/RoleSelection';
 import Login from './pages/Login';
-import ClinicProviderSelection from './pages/ClinicProviderSelection';
-import PatientSelection from './pages/PatientSelection';
+import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
 import NotificationModal from './components/NotificationModal';
 import RefillNotificationModal from './components/RefillNotificationModal';
 import { supabase } from './lib/supabase';
 
-type Screen = 'roleSelection' | 'login' | 'clinicProviderSelection' | 'patientSelection' | 'programEnrollment';
+type Screen = 'login' | 'patientDetails' | 'programEnrollment';
 
 interface Notification {
   id: string;
@@ -32,19 +30,20 @@ interface RefillNotification {
 
 const AppContent: React.FC = () => {
   const { user, logout, loading } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('roleSelection');
-  const [selectedRole, setSelectedRole] = useState<'patient' | 'provider' | 'scribe' | null>(null);
-  const [selectedClinic, setSelectedClinic] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [refillNotifications, setRefillNotifications] = useState<RefillNotification[]>([]);
   const [showRefillNotifications, setShowRefillNotifications] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      setCurrentScreen('roleSelection');
+    if (!loading && user) {
+      checkUserEnrollment();
+      checkNotifications();
+      checkRefillNotifications();
+    } else if (!loading && !user) {
+      setCurrentScreen('login');
     }
   }, [user, loading]);
 
@@ -109,14 +108,43 @@ const AppContent: React.FC = () => {
     };
   }, [user]);
 
-  const checkNotifications = async (userId: string) => {
+  const checkUserEnrollment = async () => {
+    if (!user) return;
+
+    setCheckingEnrollment(true);
     try {
+      const { data: enrollments, error } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (enrollments && enrollments.length > 0) {
+        setCurrentScreen('programEnrollment');
+      } else {
+        setCurrentScreen('patientDetails');
+      }
+    } catch (error) {
+      console.error('Error checking enrollment:', error);
+      setCurrentScreen('patientDetails');
+    } finally {
+      setCheckingEnrollment(false);
+    }
+  };
+
+  const checkNotifications = async () => {
+    if (!user) return;
+
+    try {
+      // First, trigger the re-enrollment date check
       await supabase.rpc('check_and_notify_re_enrollment_dates');
 
+      // Then fetch all unread notifications
       const { data, error } = await supabase
         .from('program_notifications')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .eq('is_read', false)
         .order('created_at', { ascending: false });
 
@@ -131,10 +159,14 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const checkRefillNotifications = async (userId: string) => {
+  const checkRefillNotifications = async () => {
+    if (!user) return;
+
     try {
+      // Trigger the refill date check
       await supabase.rpc('check_and_notify_refill_dates');
 
+      // Fetch all unread refill notifications with drug names
       const { data, error } = await supabase
         .from('refill_notifications')
         .select(`
@@ -145,7 +177,7 @@ const AppContent: React.FC = () => {
           created_at,
           drugs(name)
         `)
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .eq('is_read', false)
         .order('days_remaining', { ascending: true });
 
@@ -168,41 +200,8 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleRoleSelection = (role: 'patient' | 'provider' | 'scribe') => {
-    setSelectedRole(role);
-    setCurrentScreen('login');
-  };
-
-  const handleLoginSuccess = () => {
-    if (!user || !selectedRole) return;
-
-    if (selectedRole === 'provider') {
-      setCurrentScreen('patientSelection');
-    } else {
-      setCurrentScreen('clinicProviderSelection');
-    }
-  };
-
-  const handleClinicProviderComplete = (clinicId: string, providerId: string) => {
-    setSelectedClinic(clinicId);
-    setSelectedProvider(providerId);
-
-    const userId = selectedPatient || user?.id;
-    if (userId) {
-      checkNotifications(userId);
-      checkRefillNotifications(userId);
-    }
-
-    setCurrentScreen('programEnrollment');
-  };
-
-  const handlePatientSelection = (patientId: string) => {
-    setSelectedPatient(patientId);
-    setCurrentScreen('clinicProviderSelection');
-  };
-
   const handleCloseNotifications = async () => {
-    if (notifications.length === 0) return;
+    if (!user || notifications.length === 0) return;
 
     try {
       const notificationIds = notifications.map(n => n.id);
@@ -221,34 +220,34 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleRefreshEnrollment = () => {
+    // Force a re-check of enrollment status
+    checkUserEnrollment();
+    checkNotifications();
+    checkRefillNotifications();
+  };
+
   const handleCloseRefillNotifications = () => {
     setShowRefillNotifications(false);
     setRefillNotifications([]);
   };
 
-  const handleRefreshEnrollment = () => {
-    const userId = selectedPatient || user?.id;
-    if (userId) {
-      checkNotifications(userId);
-      checkRefillNotifications(userId);
+  const handleLoginSuccess = () => {
+    if (user) {
+      checkUserEnrollment();
     }
+  };
+
+  const handlePatientDetailsNext = () => {
+    setCurrentScreen('programEnrollment');
   };
 
   const handleLogout = () => {
     logout();
-    setSelectedRole(null);
-    setSelectedClinic(null);
-    setSelectedProvider(null);
-    setSelectedPatient(null);
-    setCurrentScreen('roleSelection');
+    setCurrentScreen('login');
   };
 
-  const handleBackToRoleSelection = () => {
-    setSelectedRole(null);
-    setCurrentScreen('roleSelection');
-  };
-
-  if (loading) {
+  if (loading || checkingEnrollment) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
@@ -257,41 +256,14 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
-    if (currentScreen === 'roleSelection') {
-      return <RoleSelection onSelectRole={handleRoleSelection} />;
-    }
-
-    if (currentScreen === 'login' && selectedRole) {
-      return (
-        <Login
-          role={selectedRole}
-          onLoginSuccess={handleLoginSuccess}
-          onBack={handleBackToRoleSelection}
-        />
-      );
-    }
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  if (user && selectedRole === 'provider' && currentScreen === 'patientSelection') {
-    return (
-      <PatientSelection
-        providerId={user.id}
-        onSelectPatient={handlePatientSelection}
-      />
-    );
+  if (currentScreen === 'patientDetails') {
+    return <PatientDetails onNext={handlePatientDetailsNext} />;
   }
 
-  if (user && currentScreen === 'clinicProviderSelection') {
-    return (
-      <ClinicProviderSelection
-        userId={selectedPatient || user.id}
-        userRole={selectedRole || 'patient'}
-        onComplete={handleClinicProviderComplete}
-      />
-    );
-  }
-
-  if (user && currentScreen === 'programEnrollment') {
+  if (currentScreen === 'programEnrollment') {
     return (
       <>
         <ProgramEnrollment onLogout={handleLogout} />
@@ -299,7 +271,7 @@ const AppContent: React.FC = () => {
           <NotificationModal
             notifications={notifications}
             onClose={handleCloseNotifications}
-            userId={selectedPatient || user.id}
+            userId={user.id}
             onLogout={handleLogout}
             onRefresh={handleRefreshEnrollment}
           />

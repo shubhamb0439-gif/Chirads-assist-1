@@ -3,7 +3,7 @@ import { supabase, User } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: 'patient' | 'provider' | 'scribe') => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   loading: boolean;
 }
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, password: string, role: 'patient' | 'provider' | 'scribe'): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { data: existingUser, error: fetchError } = await supabase
         .from('users')
@@ -52,10 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!existingUser) {
         return { success: false, error: 'User not found' };
-      }
-
-      if (existingUser.user_role !== role) {
-        return { success: false, error: `This account is not registered as a ${role}` };
       }
 
       if (existingUser.password === null) {
