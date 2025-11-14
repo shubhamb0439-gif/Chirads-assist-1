@@ -3,6 +3,7 @@ import { Heart, CheckCircle2, XCircle, Clock, Calendar, DollarSign, ChevronDown,
 import { useAuth } from '../context/AuthContext';
 import { supabase, Program, Enrollment } from '../lib/supabase';
 import RefillCalendar from '../components/RefillCalendar';
+import Toast from '../components/Toast';
 
 interface PatientDrug {
   drug_id: string;
@@ -29,6 +30,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   const [completionDate, setCompletionDate] = useState('');
   const [showCostSummary, setShowCostSummary] = useState<{[key: string]: boolean}>({});
   const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -154,6 +156,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
       await loadData();
       setStatusSelection('');
+      setToastMessage(`Program status updated to ${status === 'rejected' ? 'rejected' : status}`);
     } catch (error) {
       console.error('Error updating status:', error);
     }
@@ -184,6 +187,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
       setShowDatePicker(false);
       setCompletionDate('');
       setStatusSelection('');
+      setToastMessage('Program marked as completed successfully');
     } catch (error) {
       console.error('Error updating completion:', error);
     }
@@ -312,6 +316,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                         });
                       if (error) throw error;
                       await loadData();
+                      setToastMessage('Program marked as ongoing successfully');
                     } catch (error) {
                       console.error('Error marking as ongoing:', error);
                     }
@@ -381,6 +386,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                       setShowDatePicker(false);
                       setCompletionDate('');
                       setCompletedCheck(false);
+                      setToastMessage('Program marked as completed successfully');
                     } catch (error) {
                       console.error('Error marking as completed:', error);
                     }
@@ -413,6 +419,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                         });
                       if (error) throw error;
                       await loadData();
+                      setToastMessage('Program marked as rejected');
                     } catch (error) {
                       console.error('Error marking as rejected:', error);
                     }
@@ -597,8 +604,15 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4 sm:p-6 md:p-8">
-      <div className="max-w-4xl mx-auto">
+    <>
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4 sm:p-6 md:p-8">
+        <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#531B93' }}>Program Enrollment</h1>
@@ -646,7 +660,8 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
