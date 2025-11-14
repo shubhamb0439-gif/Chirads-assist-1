@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
 import NotificationModal from './components/NotificationModal';
+import RefillNotificationModal from './components/RefillNotificationModal';
 import { supabase } from './lib/supabase';
 
 type Screen = 'login' | 'patientDetails' | 'programEnrollment';
@@ -18,17 +19,29 @@ interface Notification {
   enrollment_link?: string;
 }
 
+interface RefillNotification {
+  id: string;
+  drug_id: string;
+  refill_date: string;
+  days_remaining: number;
+  drug_name?: string;
+  created_at: string;
+}
+
 const AppContent: React.FC = () => {
   const { user, logout, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [refillNotifications, setRefillNotifications] = useState<RefillNotification[]>([]);
+  const [showRefillNotifications, setShowRefillNotifications] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       checkUserEnrollment();
       checkNotifications();
+      checkRefillNotifications();
     } else if (!loading && !user) {
       setCurrentScreen('login');
     }
@@ -37,7 +50,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
+    const programChannel = supabase
       .channel('program_notifications')
       .on(
         'postgres_changes',
@@ -55,8 +68,43 @@ const AppContent: React.FC = () => {
       )
       .subscribe();
 
+    const refillChannel = supabase
+      .channel('refill_notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'refill_notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const newRefillNotification = payload.new as any;
+
+          const { data: drugData } = await supabase
+            .from('drugs')
+            .select('name')
+            .eq('id', newRefillNotification.drug_id)
+            .maybeSingle();
+
+          const formattedNotification: RefillNotification = {
+            id: newRefillNotification.id,
+            drug_id: newRefillNotification.drug_id,
+            refill_date: newRefillNotification.refill_date,
+            days_remaining: newRefillNotification.days_remaining,
+            created_at: newRefillNotification.created_at,
+            drug_name: drugData?.name
+          };
+
+          setRefillNotifications((prev) => [formattedNotification, ...prev]);
+          setShowRefillNotifications(true);
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(programChannel);
+      supabase.removeChannel(refillChannel);
     };
   }, [user]);
 
@@ -111,6 +159,47 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const checkRefillNotifications = async () => {
+    if (!user) return;
+
+    try {
+      // Trigger the refill date check
+      await supabase.rpc('check_and_notify_refill_dates');
+
+      // Fetch all unread refill notifications with drug names
+      const { data, error } = await supabase
+        .from('refill_notifications')
+        .select(`
+          id,
+          drug_id,
+          refill_date,
+          days_remaining,
+          created_at,
+          drugs(name)
+        `)
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+        .order('days_remaining', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const formattedData = data.map(item => ({
+          id: item.id,
+          drug_id: item.drug_id,
+          refill_date: item.refill_date,
+          days_remaining: item.days_remaining,
+          created_at: item.created_at,
+          drug_name: (item.drugs as any)?.name
+        }));
+        setRefillNotifications(formattedData);
+        setShowRefillNotifications(true);
+      }
+    } catch (error) {
+      console.error('Error checking refill notifications:', error);
+    }
+  };
+
   const handleCloseNotifications = async () => {
     if (!user || notifications.length === 0) return;
 
@@ -135,6 +224,12 @@ const AppContent: React.FC = () => {
     // Force a re-check of enrollment status
     checkUserEnrollment();
     checkNotifications();
+    checkRefillNotifications();
+  };
+
+  const handleCloseRefillNotifications = () => {
+    setShowRefillNotifications(false);
+    setRefillNotifications([]);
   };
 
   const handleLoginSuccess = () => {
@@ -179,6 +274,12 @@ const AppContent: React.FC = () => {
             userId={user.id}
             onLogout={handleLogout}
             onRefresh={handleRefreshEnrollment}
+          />
+        )}
+        {showRefillNotifications && (
+          <RefillNotificationModal
+            notifications={refillNotifications}
+            onClose={handleCloseRefillNotifications}
           />
         )}
       </>
