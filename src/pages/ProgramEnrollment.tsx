@@ -88,15 +88,37 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
       currentStatuses[program.id] = program.program_status;
 
       const previousStatus = previousStatuses[program.id];
-      if (previousStatus &&
-          (previousStatus === 'closed' || previousStatus === 'waitlisted') &&
-          program.program_status === 'open') {
-        newNotifications.push({
-          id: `program_${program.id}_${Date.now()}`,
-          type: 'program_open',
-          title: 'Program Now Open!',
-          message: `${program.name} is now open for enrollment.`
-        });
+
+      if (previousStatus && previousStatus !== program.program_status) {
+        const statusMessages: { [key: string]: { title: string; message: string } } = {
+          'open': {
+            title: 'Program Now Open!',
+            message: `${program.name} is now open for enrollment.`
+          },
+          'closed': {
+            title: 'Program Closed',
+            message: `${program.name} is now closed.`
+          },
+          'waitlisted': {
+            title: 'Program Waitlisted',
+            message: `${program.name} is now waitlisted.`
+          },
+          'identified': {
+            title: 'Program Identified',
+            message: `${program.name} has been identified for you.`
+          }
+        };
+
+        const statusInfo = statusMessages[program.program_status];
+        if (statusInfo) {
+          newNotifications.push({
+            id: `program_${program.id}_${Date.now()}`,
+            type: 'program_status_change',
+            title: statusInfo.title,
+            message: statusInfo.message,
+            statusType: program.program_status as 'open' | 'closed' | 'waitlisted' | 'identified'
+          });
+        }
       }
     });
 
