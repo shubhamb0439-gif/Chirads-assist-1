@@ -4,7 +4,6 @@ import Login from './pages/Login';
 import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
 import NotificationModal from './components/NotificationModal';
-import RefillNotificationModal from './components/RefillNotificationModal';
 import { supabase } from './lib/supabase';
 
 type Screen = 'login' | 'patientDetails' | 'programEnrollment';
@@ -19,30 +18,17 @@ interface Notification {
   enrollment_link?: string;
 }
 
-interface RefillNotification {
-  id: string;
-  drug_id: string;
-  drug_name?: string;
-  refill_date: string;
-  days_remaining: number;
-  is_read: boolean;
-  created_at: string;
-}
-
 const AppContent: React.FC = () => {
   const { user, logout, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [refillNotification, setRefillNotification] = useState<RefillNotification | null>(null);
-  const [showRefillNotification, setShowRefillNotification] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       checkUserEnrollment();
       checkNotifications();
-      checkRefillNotifications();
     } else if (!loading && !user) {
       setCurrentScreen('login');
     }
@@ -52,7 +38,7 @@ const AppContent: React.FC = () => {
     if (!user) return;
 
     const channel = supabase
-      .channel('notifications_channel')
+      .channel('program_notifications')
       .on(
         'postgres_changes',
         {
@@ -65,29 +51,6 @@ const AppContent: React.FC = () => {
           const newNotification = payload.new as Notification;
           setNotifications((prev) => [newNotification, ...prev]);
           setShowNotifications(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'refill_notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          const newRefillNotification = payload.new as RefillNotification;
-          const { data: drugData } = await supabase
-            .from('drugs')
-            .select('name')
-            .eq('id', newRefillNotification.drug_id)
-            .maybeSingle();
-
-          setRefillNotification({
-            ...newRefillNotification,
-            drug_name: drugData?.name
-          });
-          setShowRefillNotification(true);
         }
       )
       .subscribe();
@@ -126,8 +89,10 @@ const AppContent: React.FC = () => {
     if (!user) return;
 
     try {
+      // First, trigger the re-enrollment date check
       await supabase.rpc('check_and_notify_re_enrollment_dates');
 
+      // Then fetch all unread notifications
       const { data, error } = await supabase
         .from('program_notifications')
         .select('*')
@@ -143,41 +108,6 @@ const AppContent: React.FC = () => {
       }
     } catch (error) {
       console.error('Error checking notifications:', error);
-    }
-  };
-
-  const checkRefillNotifications = async () => {
-    if (!user) return;
-
-    try {
-      await supabase.rpc('check_and_notify_refill_dates');
-
-      const { data, error } = await supabase
-        .from('refill_notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_read', false)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        const { data: drugData } = await supabase
-          .from('drugs')
-          .select('name')
-          .eq('id', data.drug_id)
-          .maybeSingle();
-
-        setRefillNotification({
-          ...data,
-          drug_name: drugData?.name
-        });
-        setShowRefillNotification(true);
-      }
-    } catch (error) {
-      console.error('Error checking refill notifications:', error);
     }
   };
 
@@ -202,9 +132,9 @@ const AppContent: React.FC = () => {
   };
 
   const handleRefreshEnrollment = () => {
+    // Force a re-check of enrollment status
     checkUserEnrollment();
     checkNotifications();
-    checkRefillNotifications();
   };
 
   const handleLoginSuccess = () => {
@@ -238,25 +168,6 @@ const AppContent: React.FC = () => {
     return <PatientDetails onNext={handlePatientDetailsNext} />;
   }
 
-  const handleCloseRefillNotification = async () => {
-    if (!user || !refillNotification) return;
-
-    try {
-      const { error } = await supabase
-        .from('refill_notifications')
-        .update({ is_read: true })
-        .eq('id', refillNotification.id);
-
-      if (error) throw error;
-
-      setShowRefillNotification(false);
-      setRefillNotification(null);
-    } catch (error) {
-      console.error('Error marking refill notification as read:', error);
-      setShowRefillNotification(false);
-    }
-  };
-
   if (currentScreen === 'programEnrollment') {
     return (
       <>
@@ -268,12 +179,6 @@ const AppContent: React.FC = () => {
             userId={user.id}
             onLogout={handleLogout}
             onRefresh={handleRefreshEnrollment}
-          />
-        )}
-        {showRefillNotification && refillNotification && (
-          <RefillNotificationModal
-            notification={refillNotification}
-            onClose={handleCloseRefillNotification}
           />
         )}
       </>

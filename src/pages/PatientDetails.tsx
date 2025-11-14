@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, UserSquare2, Pill, Plus, X, Calendar } from 'lucide-react';
+import { Building2, UserSquare2, Pill, Plus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, Clinic, Provider, Drug } from '../lib/supabase';
 
@@ -16,7 +16,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   const [userClinic, setUserClinic] = useState<string | null>(null);
   const [userProvider, setUserProvider] = useState<string | null>(null);
   const [userDrug, setUserDrug] = useState<string | null>(null);
-  const [refillDate, setRefillDate] = useState<string>('');
   const [newClinicName, setNewClinicName] = useState('');
   const [newProviderName, setNewProviderName] = useState('');
   const [newDrugName, setNewDrugName] = useState('');
@@ -48,7 +47,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
         supabase.from('drugs').select('*').order('name'),
         supabase.from('user_clinics').select('clinic_id').eq('user_id', user.id).maybeSingle(),
         supabase.from('user_providers').select('provider_id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('patient_drugs').select('drug_id, refill_date').eq('user_id', user.id).maybeSingle(),
+        supabase.from('patient_drugs').select('drug_id').eq('user_id', user.id).maybeSingle(),
       ]);
 
       if (clinicsRes.data) setClinics(clinicsRes.data);
@@ -58,9 +57,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
       if (userProvidersRes.data) setUserProvider(userProvidersRes.data.provider_id);
       if (userDrugRes.data?.drug_id) {
         setUserDrug(userDrugRes.data.drug_id);
-        if (userDrugRes.data.refill_date) {
-          setRefillDate(userDrugRes.data.refill_date);
-        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -234,8 +230,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
           drug_id: selectedDrug.id,
           weekly_price: selectedDrug.weekly_price,
           monthly_price: selectedDrug.monthly_price,
-          yearly_price: selectedDrug.yearly_price,
-          refill_date: refillDate || null
+          yearly_price: selectedDrug.yearly_price
         });
 
       if (error) throw error;
@@ -257,7 +252,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
 
       if (error) throw error;
       setUserDrug(null);
-      setRefillDate('');
     } catch (error) {
       console.error('Error removing drug:', error);
     }
@@ -592,40 +586,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                         Cancel
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {userDrug && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                      <Calendar className="w-4 h-4" style={{ color: '#009193' }} />
-                      Next Refill Date
-                    </label>
-                    <input
-                      type="date"
-                      value={refillDate}
-                      min={new Date().toISOString().split('T')[0]}
-                      onChange={async (e) => {
-                        const newDate = e.target.value;
-                        setRefillDate(newDate);
-                        if (user && userDrug) {
-                          try {
-                            const { error } = await supabase
-                              .from('patient_drugs')
-                              .update({ refill_date: newDate })
-                              .eq('user_id', user.id)
-                              .eq('drug_id', userDrug);
-                            if (error) throw error;
-                          } catch (error) {
-                            console.error('Error updating refill date:', error);
-                          }
-                        }
-                      }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-gray-600 mt-2">
-                      You'll receive reminders 5 days before your refill date
-                    </p>
                   </div>
                 )}
               </div>
