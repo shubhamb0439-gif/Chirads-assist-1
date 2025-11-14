@@ -3,7 +3,6 @@ import { Heart, CheckCircle2, XCircle, Clock, Calendar, DollarSign, ChevronDown,
 import { useAuth } from '../context/AuthContext';
 import { supabase, Program, Enrollment } from '../lib/supabase';
 import RefillCalendar from '../components/RefillCalendar';
-import Notification, { NotificationData } from '../components/Notification';
 
 interface PatientDrug {
   drug_id: string;
@@ -30,15 +29,10 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   const [completionDate, setCompletionDate] = useState('');
   const [showCostSummary, setShowCostSummary] = useState<{[key: string]: boolean}>({});
   const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
 
   useEffect(() => {
     loadData();
   }, [user]);
-
-  useEffect(() => {
-    checkForNotifications();
-  }, [programs, patientDrug]);
 
   const loadData = async () => {
     if (!user) return;
@@ -73,87 +67,6 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const checkForNotifications = () => {
-    if (!user || programs.length === 0) return;
-
-    const newNotifications: NotificationData[] = [];
-    const storageKey = `program_status_${user.id}`;
-    const storedStatuses = localStorage.getItem(storageKey);
-    const previousStatuses: { [key: string]: string } = storedStatuses ? JSON.parse(storedStatuses) : {};
-    const currentStatuses: { [key: string]: string } = {};
-
-    programs.forEach(program => {
-      currentStatuses[program.id] = program.program_status;
-
-      const previousStatus = previousStatuses[program.id];
-
-      if (previousStatus && previousStatus !== program.program_status) {
-        const statusMessages: { [key: string]: { title: string; message: string } } = {
-          'open': {
-            title: 'Program Now Open!',
-            message: `${program.name} is now open for enrollment.`
-          },
-          'closed': {
-            title: 'Program Closed',
-            message: `${program.name} is now closed.`
-          },
-          'waitlisted': {
-            title: 'Program Waitlisted',
-            message: `${program.name} is now waitlisted.`
-          },
-          'identified': {
-            title: 'Program Identified',
-            message: `${program.name} has been identified for you.`
-          }
-        };
-
-        const statusInfo = statusMessages[program.program_status];
-        if (statusInfo) {
-          newNotifications.push({
-            id: `program_${program.id}_${Date.now()}`,
-            type: 'program_status_change',
-            title: statusInfo.title,
-            message: statusInfo.message,
-            statusType: program.program_status as 'open' | 'closed' | 'waitlisted' | 'identified'
-          });
-        }
-      }
-    });
-
-    if (patientDrug?.refill_date) {
-      const refillDate = new Date(patientDrug.refill_date);
-      const today = new Date();
-      const daysUntilRefill = Math.ceil((refillDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (daysUntilRefill >= 0 && daysUntilRefill <= 7) {
-        const notificationId = `refill_${patientDrug.drug_id}_${patientDrug.refill_date}`;
-        const shownNotifications = localStorage.getItem('shown_notifications') || '[]';
-        const shownList = JSON.parse(shownNotifications);
-
-        if (!shownList.includes(notificationId)) {
-          newNotifications.push({
-            id: notificationId,
-            type: 'refill_approaching',
-            title: 'Refill Date Approaching',
-            message: `Your medication refill is due in ${daysUntilRefill} day${daysUntilRefill !== 1 ? 's' : ''}.`
-          });
-          shownList.push(notificationId);
-          localStorage.setItem('shown_notifications', JSON.stringify(shownList));
-        }
-      }
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify(currentStatuses));
-
-    if (newNotifications.length > 0) {
-      setNotifications(prev => [...prev, ...newNotifications]);
-    }
-  };
-
-  const handleCloseNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   const handleProgramSelect = (programId: string) => {
@@ -664,7 +577,6 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-6">
-      <Notification notifications={notifications} onClose={handleCloseNotification} />
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex justify-between items-center mb-8">
