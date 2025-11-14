@@ -9,6 +9,7 @@ interface NotificationModalProps {
     old_status: string | null;
     new_status: string;
     created_at: string;
+    enrollment_link?: string;
   }>;
   onClose: () => void;
 }
@@ -62,12 +63,24 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, on
         </div>
 
         <div className="p-4 bg-gray-50 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          >
-            Got it!
-          </button>
+          {notifications.length > 0 && notifications[0].new_status === 'open' && notifications[0].enrollment_link ? (
+            <a
+              href={notifications[0].enrollment_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
+              className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-center"
+            >
+              Enroll Now
+            </a>
+          ) : (
+            <button
+              onClick={onClose}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            >
+              Got it!
+            </button>
+          )}
         </div>
       </div>
     </div>

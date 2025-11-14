@@ -15,6 +15,7 @@ interface Notification {
   old_status: string | null;
   new_status: string;
   created_at: string;
+  enrollment_link?: string;
 }
 
 const AppContent: React.FC = () => {
