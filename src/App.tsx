@@ -163,7 +163,7 @@ const AppContent: React.FC = () => {
     if (user.user_role === 'provider') return;
 
     // Determine which user ID to check notifications for
-    const targetUserId = (user.user_role === 'scribe' && selectedPatientId) ? selectedPatientId : user.id;
+    const targetUserId = ((user.user_role === 'scribe' || user.user_role === 'provider') && selectedPatientId) ? selectedPatientId : user.id;
 
     try {
       // First, trigger the re-enrollment date check
@@ -192,7 +192,7 @@ const AppContent: React.FC = () => {
     if (!user) return;
 
     // Determine which user ID to check notifications for
-    const targetUserId = (user.user_role === 'scribe' && selectedPatientId) ? selectedPatientId : user.id;
+    const targetUserId = ((user.user_role === 'scribe' || user.user_role === 'provider') && selectedPatientId) ? selectedPatientId : user.id;
 
     try {
       // Trigger the refill date check
