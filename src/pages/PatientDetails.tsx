@@ -195,15 +195,32 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext, selectedPatient
     if (!effectiveUserId || !newProviderName.trim()) return;
 
     try {
+      const baseEmail = newProviderName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const email = baseEmail + '@gmail.com';
+
       const { data: newProvider, error: insertError } = await supabase
         .from('providers')
-        .insert({ name: newProviderName.trim() })
+        .insert({
+          name: newProviderName.trim(),
+          email: email,
+          password: null
+        })
         .select()
         .single();
 
       if (insertError) throw insertError;
       if (newProvider) {
         setProviders([...providers, newProvider]);
+
+        if (userClinic) {
+          await supabase
+            .from('provider_clinics')
+            .insert({
+              provider_id: newProvider.id,
+              clinic_id: userClinic
+            });
+        }
+
         await handleAddProvider(newProvider.id);
         setNewProviderName('');
         setShowProviderInput(false);

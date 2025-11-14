@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import PatientSelection from './pages/PatientSelection';
+import ScribeInterface from './pages/ScribeInterface';
 import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
 import NotificationModal from './components/NotificationModal';
 import RefillNotificationModal from './components/RefillNotificationModal';
 import { supabase } from './lib/supabase';
 
-type Screen = 'login' | 'patientSelection' | 'patientDetails' | 'programEnrollment';
+type Screen = 'login' | 'patientSelection' | 'scribeInterface' | 'patientDetails' | 'programEnrollment';
 
 interface Notification {
   id: string;
@@ -41,7 +42,9 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      if (user.user_role === 'provider' || user.user_role === 'scribe') {
+      if (user.user_role === 'scribe') {
+        setCurrentScreen('scribeInterface');
+      } else if (user.user_role === 'provider') {
         setCurrentScreen('patientSelection');
       } else {
         checkUserEnrollment();
@@ -240,7 +243,9 @@ const AppContent: React.FC = () => {
 
   const handleLoginSuccess = () => {
     if (user) {
-      if (user.user_role === 'provider' || user.user_role === 'scribe') {
+      if (user.user_role === 'scribe') {
+        setCurrentScreen('scribeInterface');
+      } else if (user.user_role === 'provider') {
         setCurrentScreen('patientSelection');
       } else {
         checkUserEnrollment();
@@ -273,6 +278,10 @@ const AppContent: React.FC = () => {
 
   if (!user) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (currentScreen === 'scribeInterface') {
+    return <ScribeInterface onLogout={handleLogout} />;
   }
 
   if (currentScreen === 'patientSelection') {
