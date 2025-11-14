@@ -11,6 +11,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
   const [drugs, setDrugs] = useState<Drug[]>([]);
   const [userClinic, setUserClinic] = useState<string | null>(null);
   const [userProvider, setUserProvider] = useState<string | null>(null);
@@ -27,6 +28,14 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   useEffect(() => {
     loadData();
   }, [user]);
+
+  useEffect(() => {
+    if (userClinic) {
+      loadProvidersForClinic(userClinic);
+    } else {
+      setFilteredProviders([]);
+    }
+  }, [userClinic, providers]);
 
   const loadData = async () => {
     if (!user) return;
@@ -56,6 +65,26 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
     }
   };
 
+  const loadProvidersForClinic = async (clinicId: string) => {
+    try {
+      const { data: providerClinicData } = await supabase
+        .from('provider_clinics')
+        .select('provider_id')
+        .eq('clinic_id', clinicId);
+
+      if (providerClinicData) {
+        const providerIds = providerClinicData.map(pc => pc.provider_id);
+        const filtered = providers.filter(p => providerIds.includes(p.id));
+        setFilteredProviders(filtered);
+      } else {
+        setFilteredProviders([]);
+      }
+    } catch (error) {
+      console.error('Error loading providers for clinic:', error);
+      setFilteredProviders([]);
+    }
+  };
+
   const handleAddClinic = async (clinicId: string, isNewClinic: boolean = false) => {
     if (!user) return;
 
@@ -73,20 +102,11 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
       setUserClinic(clinicId);
       setIsNewClinicAdded(isNewClinic);
 
-      if (!isNewClinic) {
-        const { data: clinicProviders } = await supabase
-          .from('clinic_providers')
-          .select('provider_id')
-          .eq('clinic_id', clinicId)
-          .limit(1)
-          .maybeSingle();
-
-        if (clinicProviders?.provider_id) {
-          await handleAddProvider(clinicProviders.provider_id);
-        }
-      } else {
-        setUserProvider(null);
-      }
+      setUserProvider(null);
+      await supabase
+        .from('user_providers')
+        .delete()
+        .eq('user_id', user.id);
     } catch (error) {
       console.error('Error adding clinic:', error);
     }
@@ -427,9 +447,10 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                       }}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       value=""
+                      disabled={!userClinic}
                     >
-                      <option value="">Select a provider...</option>
-                      {providers.map(provider => (
+                      <option value="">{!userClinic ? 'Select a clinic first...' : 'Select a provider...'}</option>
+                      {filteredProviders.map(provider => (
                         <option key={provider.id} value={provider.id}>{provider.name}</option>
                       ))}
                       <option value="CREATE_NEW">+ Create New Provider</option>
