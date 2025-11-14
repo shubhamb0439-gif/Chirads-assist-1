@@ -460,22 +460,22 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                         <h3 className="text-lg font-semibold text-gray-800">Cost Summary</h3>
                       </div>
 
-                      <div className="space-y-3">
-                        <div className="flex flex-col gap-1 p-3 bg-gray-50 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-lg">
                           <span className="text-sm font-medium text-gray-600">Total Drug Cost (Yearly)</span>
                           <span className="text-xl font-bold text-gray-900">
                             ${patientDrug.yearly_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
 
-                        <div className="flex flex-col gap-1 p-3 bg-green-50 rounded-lg">
+                        <div className="flex flex-col gap-1 p-4 bg-green-50 rounded-lg">
                           <span className="text-sm font-medium text-gray-600">Potential Saving</span>
                           <span className="text-xl font-bold text-green-600">
                             ${calculatePotentialSaving(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
 
-                        <div className="flex flex-col gap-1 p-3 bg-blue-50 rounded-lg border-2 border-blue-500">
+                        <div className="flex flex-col gap-1 p-4 bg-blue-50 rounded-lg border-2 border-blue-500">
                           <span className="text-sm font-semibold text-gray-700">Out of Pocket Cost</span>
                           <span className="text-xl font-bold text-blue-600">
                             ${calculateOutOfPocketCost(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
