@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, UserSquare2, Users, Plus, X } from 'lucide-react';
+import { Building2, UserSquare2, Users, Plus, X, Pill, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { supabase, Clinic, Provider, User as DBUser } from '../lib/supabase';
+import { supabase, Clinic, Provider, User as DBUser, Drug } from '../lib/supabase';
 
 interface ScribeInterfaceProps {
   onLogout: () => void;
+  onContinue: (patientId: string) => void;
 }
 
-const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout }) => {
+const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout, onContinue }) => {
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
+  const [drugs, setDrugs] = useState<Drug[]>([]);
   const [selectedClinic, setSelectedClinic] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const [selectedDrug, setSelectedDrug] = useState<string | null>(null);
+  const [refillDate, setRefillDate] = useState<string>('');
   const [mappedPatients, setMappedPatients] = useState<DBUser[]>([]);
   const [allPatients, setAllPatients] = useState<DBUser[]>([]);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
@@ -42,15 +47,17 @@ const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout }) => {
 
   const loadData = async () => {
     try {
-      const [clinicsRes, providersRes, patientsRes] = await Promise.all([
+      const [clinicsRes, providersRes, patientsRes, drugsRes] = await Promise.all([
         supabase.from('clinics').select('*').order('name'),
         supabase.from('providers').select('*').order('name'),
         supabase.from('users').select('*').eq('user_role', 'patient').order('email'),
+        supabase.from('drugs').select('*').order('name'),
       ]);
 
       if (clinicsRes.data) setClinics(clinicsRes.data);
       if (providersRes.data) setProviders(providersRes.data);
       if (patientsRes.data) setAllPatients(patientsRes.data);
+      if (drugsRes.data) setDrugs(drugsRes.data);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -137,9 +144,73 @@ const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout }) => {
       if (error) throw error;
 
       await loadMappedPatients(selectedProvider);
+
+      if (selectedPatient === patientId) {
+        setSelectedPatient(null);
+        setSelectedDrug(null);
+        setRefillDate('');
+      }
     } catch (error) {
       console.error('Error removing patient:', error);
     }
+  };
+
+  const handleSelectPatient = async (patientId: string) => {
+    setSelectedPatient(patientId);
+
+    try {
+      const { data: patientDrugData } = await supabase
+        .from('patient_drugs')
+        .select('drug_id, refill_date')
+        .eq('user_id', patientId)
+        .maybeSingle();
+
+      if (patientDrugData) {
+        setSelectedDrug(patientDrugData.drug_id);
+        setRefillDate(patientDrugData.refill_date || '');
+      } else {
+        setSelectedDrug(null);
+        setRefillDate('');
+      }
+    } catch (error) {
+      console.error('Error loading patient drug:', error);
+    }
+  };
+
+  const handleSaveDrugAndRefillDate = async () => {
+    if (!selectedPatient || !selectedDrug) return;
+
+    try {
+      await supabase
+        .from('patient_drugs')
+        .delete()
+        .eq('user_id', selectedPatient);
+
+      const drug = drugs.find(d => d.id === selectedDrug);
+      if (!drug) return;
+
+      const { error } = await supabase
+        .from('patient_drugs')
+        .insert({
+          user_id: selectedPatient,
+          drug_id: drug.id,
+          refill_date: refillDate || null,
+          weekly_price: drug.weekly_price,
+          monthly_price: drug.monthly_price,
+          yearly_price: drug.yearly_price
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving drug:', error);
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!selectedPatient) return;
+
+    await handleSaveDrugAndRefillDate();
+    onContinue(selectedPatient);
   };
 
   const availablePatients = allPatients.filter(
@@ -247,7 +318,12 @@ const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout }) => {
                     {mappedPatients.map((patient) => (
                       <div
                         key={patient.id}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        className={`flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer ${
+                          selectedPatient === patient.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                        onClick={() => handleSelectPatient(patient.id)}
                       >
                         <div>
                           <p className="font-semibold text-gray-800">{patient.email}</p>
@@ -256,7 +332,10 @@ const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout }) => {
                           </p>
                         </div>
                         <button
-                          onClick={() => handleRemovePatient(patient.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemovePatient(patient.id);
+                          }}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Remove patient"
                         >
@@ -267,6 +346,59 @@ const ScribeInterface: React.FC<ScribeInterfaceProps> = ({ onLogout }) => {
                   </div>
                 )}
               </div>
+            )}
+
+            {selectedPatient && (
+              <>
+                <div className="border-b border-gray-200 pb-4 sm:pb-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                    <Pill className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#009193' }} />
+                    <h2 className="text-lg sm:text-xl font-semibold" style={{ color: '#531B93' }}>
+                      Drug Details
+                    </h2>
+                  </div>
+
+                  <select
+                    value={selectedDrug || ''}
+                    onChange={(e) => setSelectedDrug(e.target.value || null)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select a drug...</option>
+                    {drugs.map(drug => (
+                      <option key={drug.id} value={drug.id}>{drug.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="border-b border-gray-200 pb-4 sm:pb-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#009193' }} />
+                    <h2 className="text-lg sm:text-xl font-semibold" style={{ color: '#531B93' }}>
+                      Refill Date
+                    </h2>
+                  </div>
+
+                  <input
+                    type="date"
+                    value={refillDate}
+                    onChange={(e) => setRefillDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={handleContinue}
+                    disabled={!selectedDrug}
+                    className="w-full sm:w-auto text-white font-semibold px-6 sm:px-8 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: '#009193' }}
+                    onMouseEnter={(e) => !selectedDrug ? null : e.currentTarget.style.backgroundColor = '#007b7d'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
+                  >
+                    Continue to Program Enrollment
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
