@@ -131,6 +131,12 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleRefreshEnrollment = () => {
+    // Force a re-check of enrollment status
+    checkUserEnrollment();
+    checkNotifications();
+  };
+
   const handleLoginSuccess = () => {
     if (user) {
       checkUserEnrollment();
@@ -172,6 +178,7 @@ const AppContent: React.FC = () => {
             onClose={handleCloseNotifications}
             userId={user.id}
             onLogout={handleLogout}
+            onRefresh={handleRefreshEnrollment}
           />
         )}
       </>

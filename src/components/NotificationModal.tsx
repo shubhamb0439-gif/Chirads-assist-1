@@ -17,9 +17,10 @@ interface NotificationModalProps {
   onClose: () => void;
   userId: string;
   onLogout: () => void;
+  onRefresh?: () => void;
 }
 
-const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, onClose, userId, onLogout }) => {
+const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, onClose, userId, onLogout, onRefresh }) => {
   if (notifications.length === 0) return null;
 
   const calculateReEnrollmentDate = (renewalPeriod: string | null, enrolledAt: string): string | null => {
@@ -94,15 +95,26 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, on
         if (error) throw error;
       }
 
+      // Check if this is a re-enrollment (existing enrollment updated) or new enrollment
+      const isReEnrollment = !!existingEnrollment;
+
       // Open enrollment link
       const enrollmentLink = programData?.enrollment_link || 'https://portal.copays.org/#/register';
       window.open(enrollmentLink, '_blank');
 
       onClose();
 
-      setTimeout(() => {
-        onLogout();
-      }, 1000);
+      if (isReEnrollment && onRefresh) {
+        // For re-enrollment, just refresh the page to show updated status
+        setTimeout(() => {
+          onRefresh();
+        }, 500);
+      } else {
+        // For new enrollment, logout and force re-login
+        setTimeout(() => {
+          onLogout();
+        }, 1000);
+      }
     } catch (error) {
       console.error('Error enrolling:', error);
       onClose();
