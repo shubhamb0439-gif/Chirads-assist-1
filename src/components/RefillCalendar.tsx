@@ -4,9 +4,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 interface RefillCalendarProps {
   refillDate: string | null;
   reEnrollmentDate: string | null;
+  enrollmentDate: string | null;
 }
 
-const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmentDate }) => {
+const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmentDate, enrollmentDate }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const getDaysInMonth = (date: Date) => {
@@ -36,12 +37,13 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
     setCurrentDate(new Date());
   };
 
-  const isToday = (day: number) => {
-    const today = new Date();
+  const isEnrollmentDate = (day: number) => {
+    if (!enrollmentDate) return false;
+    const enrollment = new Date(enrollmentDate);
     return (
-      day === today.getDate() &&
-      currentDate.getMonth() === today.getMonth() &&
-      currentDate.getFullYear() === today.getFullYear()
+      day === enrollment.getDate() &&
+      currentDate.getMonth() === enrollment.getMonth() &&
+      currentDate.getFullYear() === enrollment.getFullYear()
     );
   };
 
@@ -79,7 +81,7 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const today = isToday(day);
+      const enrollment = isEnrollmentDate(day);
       const refill = isRefillDate(day);
       const reEnroll = isReEnrollmentDate(day);
 
@@ -91,7 +93,7 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
                 ? 'bg-red-400 text-white'
                 : refill
                 ? 'bg-yellow-400 text-gray-900'
-                : today
+                : enrollment
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
@@ -136,16 +138,18 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
       <div className="flex items-center justify-center gap-3 mb-2 text-xs">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-blue-500" />
-          <span className="text-gray-600">Today</span>
+          <span className="text-gray-600">Enrollment</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-yellow-400" />
           <span className="text-gray-600">Refill</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-red-400" />
-          <span className="text-gray-600">Re-enroll</span>
-        </div>
+        {reEnrollmentDate && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-red-400" />
+            <span className="text-gray-600">Re-enroll</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-7 gap-0.5 mb-1">

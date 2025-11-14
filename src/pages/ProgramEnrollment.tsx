@@ -502,6 +502,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                       <RefillCalendar
                         refillDate={getDummyRefillDate()}
                         reEnrollmentDate={enrollment.re_enrollment_date}
+                        enrollmentDate={enrollment.enrolled_at}
                       />
                     </div>
                   </div>
