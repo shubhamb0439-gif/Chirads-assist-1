@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { supabase, Program, Enrollment } from '../lib/supabase';
 import RefillCalendar from '../components/RefillCalendar';
 import Notification, { NotificationData } from '../components/Notification';
-import { subscribeToPushNotifications } from '../lib/pushNotifications';
 
 interface PatientDrug {
   drug_id: string;
@@ -35,12 +34,6 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
   useEffect(() => {
     loadData();
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      subscribeToPushNotifications(user.id);
-    }
   }, [user]);
 
   useEffect(() => {
