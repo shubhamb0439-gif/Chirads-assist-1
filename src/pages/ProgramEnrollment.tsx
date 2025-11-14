@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, CheckCircle2, XCircle, Clock, Calendar, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, CheckCircle2, XCircle, Clock, Calendar, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, Program, Enrollment } from '../lib/supabase';
 import RefillCalendar from '../components/RefillCalendar';
@@ -28,7 +28,6 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   const [statusSelection, setStatusSelection] = useState<string>('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [completionDate, setCompletionDate] = useState('');
-  const [showCostSummary, setShowCostSummary] = useState<{[key: string]: boolean}>({});
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -193,18 +192,14 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
     }
   };
 
-  const toggleCostSummary = (programId: string) => {
-    setShowCostSummary(prev => ({
-      ...prev,
-      [programId]: !prev[programId]
-    }));
-  };
-
   const getEnrollmentForProgram = (programId: string) => {
     return enrollments.find(e => e.program_id === programId);
   };
 
   const calculatePotentialSaving = (program: Program): number => {
+    if (program.monetary_cap.toLowerCase() === 'free') {
+      return patientDrug?.yearly_price || 0;
+    }
     const monetaryCapStr = program.monetary_cap.replace(/[^0-9.]/g, '');
     return parseFloat(monetaryCapStr) || 0;
   };
@@ -459,46 +454,34 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
             {enrollment.status === 'completed' && patientDrug && (
                   <div className="space-y-4">
-                    <div className="bg-white border-2 border-green-500 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => toggleCostSummary(program.id)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-6 h-6 text-green-600" />
-                          <h3 className="text-lg font-semibold text-gray-800">Cost Summary</h3>
+                    <div className="bg-white border-2 border-green-500 rounded-lg p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <DollarSign className="w-6 h-6 text-green-600" />
+                        <h3 className="text-lg font-semibold text-gray-800">Cost Summary</h3>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-600">Total Drug Cost (Yearly)</span>
+                          <span className="text-2xl font-bold text-gray-900">
+                            ${patientDrug.yearly_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
-                        {showCostSummary[program.id] ? (
-                          <ChevronUp className="w-5 h-5 text-gray-600" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-600" />
-                        )}
-                      </button>
 
-                      {showCostSummary[program.id] && (
-                        <div className="p-6 pt-0 space-y-3">
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span className="font-medium text-gray-700">Total Drug Cost (Yearly):</span>
-                            <span className="text-lg font-bold text-gray-900">
-                              ${patientDrug.yearly_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                            <span className="font-medium text-gray-700">Potential Saving:</span>
-                            <span className="text-lg font-bold text-green-600">
-                              ${calculatePotentialSaving(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-2 border-blue-500">
-                            <span className="font-semibold text-gray-800">Out of Pocket Cost:</span>
-                            <span className="text-xl font-bold text-blue-600">
-                              ${calculateOutOfPocketCost(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
+                        <div className="flex flex-col gap-2 p-4 bg-green-50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-600">Potential Saving</span>
+                          <span className="text-2xl font-bold text-green-600">
+                            ${calculatePotentialSaving(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
-                      )}
+
+                        <div className="flex flex-col gap-2 p-4 bg-blue-50 rounded-lg border-2 border-blue-500">
+                          <span className="text-sm font-semibold text-gray-700">Out of Pocket Cost</span>
+                          <span className="text-3xl font-bold text-blue-600">
+                            ${calculateOutOfPocketCost(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex flex-col items-center">
