@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, UserSquare2, Pill, Plus, X, Calendar } from 'lucide-react';
+import { Building2, UserSquare2, Pill, Plus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, Clinic, Provider, Drug } from '../lib/supabase';
 
@@ -15,7 +15,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   const [userClinic, setUserClinic] = useState<string | null>(null);
   const [userProvider, setUserProvider] = useState<string | null>(null);
   const [userDrug, setUserDrug] = useState<string | null>(null);
-  const [refillDate, setRefillDate] = useState<string>('');
   const [newClinicName, setNewClinicName] = useState('');
   const [newProviderName, setNewProviderName] = useState('');
   const [newDrugName, setNewDrugName] = useState('');
@@ -38,7 +37,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
         supabase.from('drugs').select('*').order('name'),
         supabase.from('user_clinics').select('clinic_id').eq('user_id', user.id).maybeSingle(),
         supabase.from('user_providers').select('provider_id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('patient_drugs').select('drug_id, refill_date').eq('user_id', user.id).maybeSingle(),
+        supabase.from('patient_drugs').select('drug_id').eq('user_id', user.id).maybeSingle(),
       ]);
 
       if (clinicsRes.data) setClinics(clinicsRes.data);
@@ -48,9 +47,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
       if (userProvidersRes.data) setUserProvider(userProvidersRes.data.provider_id);
       if (userDrugRes.data?.drug_id) {
         setUserDrug(userDrugRes.data.drug_id);
-        if (userDrugRes.data.refill_date) {
-          setRefillDate(userDrugRes.data.refill_date);
-        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -207,8 +203,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
           drug_id: selectedDrug.id,
           weekly_price: selectedDrug.weekly_price,
           monthly_price: selectedDrug.monthly_price,
-          yearly_price: selectedDrug.yearly_price,
-          refill_date: refillDate || null
+          yearly_price: selectedDrug.yearly_price
         });
 
       if (error) throw error;
@@ -230,25 +225,8 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
 
       if (error) throw error;
       setUserDrug(null);
-      setRefillDate('');
     } catch (error) {
       console.error('Error removing drug:', error);
-    }
-  };
-
-  const handleUpdateRefillDate = async () => {
-    if (!user || !userDrug || !refillDate) return;
-
-    try {
-      const { error } = await supabase
-        .from('patient_drugs')
-        .update({ refill_date: refillDate })
-        .eq('user_id', user.id)
-        .eq('drug_id', userDrug);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error updating refill date:', error);
     }
   };
 
@@ -563,41 +541,6 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                     >
                       Cancel
                     </button>
-                  </div>
-                )}
-
-                {userDrug && (
-                  <div className="mt-6 border-t border-gray-200 pt-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Calendar className="w-5 h-5" style={{ color: '#009193' }} />
-                      <label className="text-sm font-medium text-gray-700">
-                        Refill Date
-                      </label>
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={refillDate}
-                        onChange={(e) => setRefillDate(e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleUpdateRefillDate}
-                        disabled={!refillDate}
-                        className="text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: '#531B93' }}
-                        onMouseEnter={(e) => !refillDate ? null : e.currentTarget.style.backgroundColor = '#421680'}
-                        onMouseLeave={(e) => !refillDate ? null : e.currentTarget.style.backgroundColor = '#531B93'}
-                      >
-                        Save Date
-                      </button>
-                    </div>
-                    {refillDate && (
-                      <p className="text-sm text-gray-600 mt-2">
-                        Next refill: {new Date(refillDate).toLocaleDateString()}
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
