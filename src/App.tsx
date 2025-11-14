@@ -162,10 +162,12 @@ const AppContent: React.FC = () => {
     return (
       <>
         <ProgramEnrollment onLogout={handleLogout} />
-        {showNotifications && (
+        {showNotifications && user && (
           <NotificationModal
             notifications={notifications}
             onClose={handleCloseNotifications}
+            userId={user.id}
+            onLogout={handleLogout}
           />
         )}
       </>

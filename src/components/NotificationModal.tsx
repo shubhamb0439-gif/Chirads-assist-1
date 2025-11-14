@@ -1,21 +1,88 @@
 import React from 'react';
 import { Bell, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
-interface NotificationModalProps {
-  notifications: Array<{
-    id: string;
-    message: string;
-    program_id: string;
-    old_status: string | null;
-    new_status: string;
-    created_at: string;
-    enrollment_link?: string;
-  }>;
-  onClose: () => void;
+interface Notification {
+  id: string;
+  message: string;
+  program_id: string;
+  old_status: string | null;
+  new_status: string;
+  created_at: string;
+  enrollment_link?: string;
 }
 
-const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, onClose }) => {
+interface NotificationModalProps {
+  notifications: Notification[];
+  onClose: () => void;
+  userId: string;
+  onLogout: () => void;
+}
+
+const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, onClose, userId, onLogout }) => {
   if (notifications.length === 0) return null;
+
+  const calculateReEnrollmentDate = (renewalPeriod: string | null, enrolledAt: string): string | null => {
+    const enrollmentDate = new Date(enrolledAt);
+
+    if (!renewalPeriod || renewalPeriod === 'never') {
+      return null;
+    } else if (renewalPeriod === 'calendar years' || renewalPeriod === 'calendar year') {
+      const nextYear = enrollmentDate.getFullYear() + 1;
+      return `${nextYear}-01-01`;
+    } else {
+      const days = parseInt(renewalPeriod);
+      if (!isNaN(days)) {
+        const reEnrollmentDate = new Date(enrollmentDate);
+        reEnrollmentDate.setDate(enrollmentDate.getDate() + days);
+        return reEnrollmentDate.toISOString().split('T')[0];
+      }
+    }
+    return null;
+  };
+
+  const handleEnrollNow = async () => {
+    const notification = notifications[0];
+    if (!notification || notification.new_status !== 'open') return;
+
+    try {
+      const { data: programData, error: programError } = await supabase
+        .from('programs')
+        .select('renewal_period')
+        .eq('id', notification.program_id)
+        .maybeSingle();
+
+      if (programError) throw programError;
+
+      const enrolledAt = new Date().toISOString();
+      const reEnrollmentDate = calculateReEnrollmentDate(programData?.renewal_period || null, enrolledAt);
+
+      const { error } = await supabase
+        .from('enrollments')
+        .insert({
+          user_id: userId,
+          program_id: notification.program_id,
+          status: 'enrolled',
+          enrolled_at: enrolledAt,
+          re_enrollment_date: reEnrollmentDate,
+        });
+
+      if (error) throw error;
+
+      if (notification.enrollment_link) {
+        window.open(notification.enrollment_link, '_blank');
+      }
+
+      onClose();
+
+      setTimeout(() => {
+        onLogout();
+      }, 1000);
+    } catch (error) {
+      console.error('Error enrolling:', error);
+      onClose();
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -63,16 +130,13 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, on
         </div>
 
         <div className="p-4 bg-gray-50 border-t border-gray-200">
-          {notifications.length > 0 && notifications[0].new_status === 'open' && notifications[0].enrollment_link ? (
-            <a
-              href={notifications[0].enrollment_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onClose}
-              className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-center"
+          {notifications.length > 0 && notifications[0].new_status === 'open' ? (
+            <button
+              onClick={handleEnrollNow}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
             >
               Enroll Now
-            </a>
+            </button>
           ) : (
             <button
               onClick={onClose}
