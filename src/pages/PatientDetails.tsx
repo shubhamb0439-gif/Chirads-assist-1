@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, UserSquare2, Pill, Plus, X } from 'lucide-react';
+import { Building2, UserSquare2, Pill, Plus, X, ArrowLeft, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, Clinic, Provider, Drug } from '../lib/supabase';
 
 interface PatientDetailsProps {
   onNext: () => void;
+  onBack?: () => void;
+  onLogout?: () => void;
   selectedPatientId?: string | null;
 }
 
-const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext, selectedPatientId }) => {
+const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext, onBack, onLogout, selectedPatientId }) => {
   const { user } = useAuth();
   const effectiveUserId = selectedPatientId || user?.id;
   const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -320,7 +322,34 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext, selectedPatient
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8" style={{ color: '#531B93' }}>Patient Details</h1>
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <div className="flex items-center gap-3">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Back to Dashboard"
+                >
+                  <ArrowLeft className="w-6 h-6" style={{ color: '#531B93' }} />
+                </button>
+              )}
+              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#531B93' }}>Patient Details</h1>
+            </div>
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors"
+                style={{ backgroundColor: '#009193' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            )}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
             <div className="border-b border-gray-200 pb-4 sm:pb-6">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-import PatientSelection from './pages/PatientSelection';
+import ProviderDashboard from './pages/ProviderDashboard';
 import ScribeInterface from './pages/ScribeInterface';
 import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
@@ -9,7 +9,7 @@ import NotificationModal from './components/NotificationModal';
 import RefillNotificationModal from './components/RefillNotificationModal';
 import { supabase } from './lib/supabase';
 
-type Screen = 'login' | 'patientSelection' | 'scribeInterface' | 'patientDetails' | 'programEnrollment';
+type Screen = 'login' | 'providerDashboard' | 'scribeInterface' | 'patientDetails' | 'programEnrollment';
 
 interface Notification {
   id: string;
@@ -45,7 +45,7 @@ const AppContent: React.FC = () => {
       if (user.user_role === 'scribe') {
         setCurrentScreen('scribeInterface');
       } else if (user.user_role === 'provider') {
-        setCurrentScreen('patientSelection');
+        setCurrentScreen('providerDashboard');
       } else {
         checkUserEnrollment();
         checkNotifications();
@@ -246,7 +246,7 @@ const AppContent: React.FC = () => {
       if (user.user_role === 'scribe') {
         setCurrentScreen('scribeInterface');
       } else if (user.user_role === 'provider') {
-        setCurrentScreen('patientSelection');
+        setCurrentScreen('providerDashboard');
       } else {
         checkUserEnrollment();
       }
@@ -256,6 +256,11 @@ const AppContent: React.FC = () => {
   const handlePatientSelected = (patientId: string) => {
     setSelectedPatientId(patientId);
     setCurrentScreen('patientDetails');
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedPatientId(null);
+    setCurrentScreen('providerDashboard');
   };
 
   const handleScribeContinue = (patientId: string) => {
@@ -289,12 +294,20 @@ const AppContent: React.FC = () => {
     return <ScribeInterface onLogout={handleLogout} onContinue={handleScribeContinue} />;
   }
 
-  if (currentScreen === 'patientSelection') {
-    return <PatientSelection onPatientSelected={handlePatientSelected} />;
+  if (currentScreen === 'providerDashboard') {
+    return <ProviderDashboard onPatientSelect={handlePatientSelected} onLogout={handleLogout} />;
   }
 
   if (currentScreen === 'patientDetails') {
-    return <PatientDetails onNext={handlePatientDetailsNext} selectedPatientId={selectedPatientId} />;
+    const isProvider = user?.user_role === 'provider';
+    return (
+      <PatientDetails
+        onNext={handlePatientDetailsNext}
+        onBack={isProvider ? handleBackToDashboard : undefined}
+        onLogout={isProvider ? handleLogout : undefined}
+        selectedPatientId={selectedPatientId}
+      />
+    );
   }
 
   if (currentScreen === 'programEnrollment') {
