@@ -22,6 +22,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   const [showProviderInput, setShowProviderInput] = useState(false);
   const [showDrugInput, setShowDrugInput] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isNewClinicAdded, setIsNewClinicAdded] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -55,7 +56,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
     }
   };
 
-  const handleAddClinic = async (clinicId: string) => {
+  const handleAddClinic = async (clinicId: string, isNewClinic: boolean = false) => {
     if (!user) return;
 
     try {
@@ -70,16 +71,21 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
 
       if (error) throw error;
       setUserClinic(clinicId);
+      setIsNewClinicAdded(isNewClinic);
 
-      const { data: clinicProviders } = await supabase
-        .from('clinic_providers')
-        .select('provider_id')
-        .eq('clinic_id', clinicId)
-        .limit(1)
-        .maybeSingle();
+      if (!isNewClinic) {
+        const { data: clinicProviders } = await supabase
+          .from('clinic_providers')
+          .select('provider_id')
+          .eq('clinic_id', clinicId)
+          .limit(1)
+          .maybeSingle();
 
-      if (clinicProviders?.provider_id) {
-        await handleAddProvider(clinicProviders.provider_id);
+        if (clinicProviders?.provider_id) {
+          await handleAddProvider(clinicProviders.provider_id);
+        }
+      } else {
+        setUserProvider(null);
       }
     } catch (error) {
       console.error('Error adding clinic:', error);
@@ -98,6 +104,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
 
       if (error) throw error;
       setUserClinic(null);
+      setIsNewClinicAdded(false);
     } catch (error) {
       console.error('Error removing clinic:', error);
     }
@@ -153,7 +160,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
       if (insertError) throw insertError;
       if (newClinic) {
         setClinics([...clinics, newClinic]);
-        await handleAddClinic(newClinic.id);
+        await handleAddClinic(newClinic.id, true);
         setNewClinicName('');
         setShowClinicInput(false);
       }
@@ -271,16 +278,16 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h1 className="text-3xl font-bold mb-8" style={{ color: '#531B93' }}>Patient Details</h1>
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8" style={{ color: '#531B93' }}>Patient Details</h1>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="border-b border-gray-200 pb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Building2 className="w-6 h-6" style={{ color: '#009193' }} />
-                <h2 className="text-xl font-semibold" style={{ color: '#531B93' }}>Clinic Information</h2>
+          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+            <div className="border-b border-gray-200 pb-4 sm:pb-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#009193' }} />
+                <h2 className="text-lg sm:text-xl font-semibold" style={{ color: '#531B93' }}>Clinic Information</h2>
               </div>
 
               <div className="space-y-4">
@@ -330,7 +337,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                 </div>
 
                 {showClinicInput && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       placeholder="Enter new clinic name"
@@ -339,36 +346,38 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       autoFocus
                     />
-                    <button
-                      type="button"
-                      onClick={handleCreateClinic}
-                      className="text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                      style={{ backgroundColor: '#531B93' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#421680'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#531B93'}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowClinicInput(false);
-                        setNewClinicName('');
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      Cancel
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCreateClinic}
+                        className="text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                        style={{ backgroundColor: '#009193' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowClinicInput(false);
+                          setNewClinicName('');
+                        }}
+                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors flex-1 sm:flex-initial"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="border-b border-gray-200 pb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <UserSquare2 className="w-6 h-6" style={{ color: '#009193' }} />
-                <h2 className="text-xl font-semibold" style={{ color: '#531B93' }}>Provider Information</h2>
+            <div className="border-b border-gray-200 pb-4 sm:pb-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                <UserSquare2 className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#009193' }} />
+                <h2 className="text-lg sm:text-xl font-semibold" style={{ color: '#531B93' }}>Provider Information</h2>
               </div>
 
               <div className="space-y-4">
@@ -397,28 +406,39 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {userProvider ? 'Change Provider' : 'Select Provider'}
                   </label>
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value === 'CREATE_NEW') {
-                        setShowProviderInput(true);
-                        e.target.value = '';
-                      } else if (e.target.value) {
-                        handleAddProvider(e.target.value);
-                      }
-                    }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value=""
-                  >
-                    <option value="">Select a provider...</option>
-                    {providers.map(provider => (
-                      <option key={provider.id} value={provider.id}>{provider.name}</option>
-                    ))}
-                    <option value="CREATE_NEW">+ Create New Provider</option>
-                  </select>
+                  {isNewClinicAdded ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowProviderInput(true)}
+                      className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-gray-600 font-medium"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Provider
+                    </button>
+                  ) : (
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value === 'CREATE_NEW') {
+                          setShowProviderInput(true);
+                          e.target.value = '';
+                        } else if (e.target.value) {
+                          handleAddProvider(e.target.value);
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value=""
+                    >
+                      <option value="">Select a provider...</option>
+                      {providers.map(provider => (
+                        <option key={provider.id} value={provider.id}>{provider.name}</option>
+                      ))}
+                      <option value="CREATE_NEW">+ Create New Provider</option>
+                    </select>
+                  )}
                 </div>
 
                 {showProviderInput && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       placeholder="Enter new provider name"
@@ -427,36 +447,38 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       autoFocus
                     />
-                    <button
-                      type="button"
-                      onClick={handleCreateProvider}
-                      className="text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                      style={{ backgroundColor: '#531B93' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#421680'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#531B93'}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowProviderInput(false);
-                        setNewProviderName('');
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      Cancel
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCreateProvider}
+                        className="text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                        style={{ backgroundColor: '#009193' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProviderInput(false);
+                          setNewProviderName('');
+                        }}
+                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors flex-1 sm:flex-initial"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <Pill className="w-6 h-6" style={{ color: '#009193' }} />
-                <h2 className="text-xl font-semibold" style={{ color: '#531B93' }}>Drug Details</h2>
+              <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                <Pill className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#009193' }} />
+                <h2 className="text-lg sm:text-xl font-semibold" style={{ color: '#531B93' }}>Drug Details</h2>
               </div>
 
               <div className="space-y-4">
@@ -511,7 +533,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                 </div>
 
                 {showDrugInput && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       placeholder="Enter new drug name"
@@ -520,27 +542,29 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       autoFocus
                     />
-                    <button
-                      type="button"
-                      onClick={handleCreateDrug}
-                      className="text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                      style={{ backgroundColor: '#531B93' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#421680'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#531B93'}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowDrugInput(false);
-                        setNewDrugName('');
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      Cancel
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCreateDrug}
+                        className="text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                        style={{ backgroundColor: '#009193' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDrugInput(false);
+                          setNewDrugName('');
+                        }}
+                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors flex-1 sm:flex-initial"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -549,10 +573,10 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="text-white font-semibold px-8 py-3 rounded-lg transition-colors"
-                style={{ backgroundColor: '#531B93' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#421680'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#531B93'}
+                className="w-full sm:w-auto text-white font-semibold px-6 sm:px-8 py-3 rounded-lg transition-colors"
+                style={{ backgroundColor: '#009193' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
               >
                 Continue to Program Enrollment
               </button>

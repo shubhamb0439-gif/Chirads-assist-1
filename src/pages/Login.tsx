@@ -29,8 +29,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center p-4 sm:p-6 md:p-8">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8">
         <div className="flex flex-col items-center mb-8">
           <img src="/drug assist app logo copy.png" alt="Drug Assist Logo" className="w-48 h-auto mb-4" />
           <h1 className="text-3xl font-bold" style={{ color: '#531B93' }}>Welcome Back</h1>
@@ -78,9 +78,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             type="submit"
             disabled={loading}
             className="w-full text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#531B93' }}
-            onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#421680')}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#531B93'}
+            style={{ backgroundColor: '#009193' }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#007b7d')}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

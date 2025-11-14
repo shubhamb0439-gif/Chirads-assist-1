@@ -259,9 +259,9 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
               <button
                 onClick={() => handleEnrollNow(program)}
                 className="w-full text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-                style={{ backgroundColor: '#531B93' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#421680'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#531B93'}
+                style={{ backgroundColor: '#009193' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
               >
                 Proceed to Enrollment
               </button>
@@ -545,21 +545,9 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
         )}
 
         {!isProgramOpen && !enrollment && (
-          <div className={`rounded-lg p-4 ${
-            program.program_status === 'waitlisted'
-              ? 'bg-yellow-50 border border-yellow-200'
-              : program.program_status === 'closed'
-              ? 'bg-red-50 border border-red-200'
-              : 'bg-blue-50 border border-blue-200'
-          }`}>
-            <p className={`text-sm font-medium ${
-              program.program_status === 'waitlisted'
-                ? 'text-yellow-800'
-                : program.program_status === 'closed'
-                ? 'text-red-800'
-                : 'text-blue-800'
-            }`}>
-              This program is currently {program.program_status}. Enrollment is not available at this time.
+          <div className="rounded-lg p-4 bg-blue-50 border border-blue-200">
+            <p className="text-sm font-medium text-blue-800">
+              Update your enrollment status
             </p>
           </div>
         )}
@@ -576,11 +564,11 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold" style={{ color: '#531B93' }}>Program Enrollment</h1>
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#531B93' }}>Program Enrollment</h1>
             <button
               onClick={onLogout}
               className="text-sm font-medium"
@@ -592,25 +580,25 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Programs</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Your Programs</h2>
               <div className="space-y-3">
                 {programs.map(program => (
                   <div key={program.id} className="border-2 border-gray-200 rounded-lg">
                     <button
                       onClick={() => handleProgramSelect(program.id)}
-                      className={`w-full text-left px-6 py-4 rounded-lg transition-all ${
+                      className={`w-full text-left px-4 sm:px-6 py-3 sm:py-4 rounded-lg transition-all ${
                         selectedProgramId === program.id
                           ? 'bg-blue-50'
                           : 'bg-white hover:bg-gray-50'
                       }`}
                     >
-                      <div className="font-semibold text-lg" style={{ color: '#531B93' }}>
+                      <div className="font-semibold text-base sm:text-lg" style={{ color: '#531B93' }}>
                         {program.name}
                       </div>
                       <div className="text-sm text-gray-600 mt-1">{program.sponsor}</div>
                     </button>
                     {selectedProgramId === program.id && (
-                      <div className="px-6 pb-4">
+                      <div className="px-4 sm:px-6 pb-4">
                         {renderProgramDetails(program)}
                       </div>
                     )}
