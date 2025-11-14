@@ -227,25 +227,25 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
     return (
       <div className="border-t border-gray-200 mt-3 pt-4 space-y-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
-            <Heart className="w-6 h-6 mt-1" style={{ color: '#009193' }} />
-            <div className="flex-1">
-              <div className="space-y-2 text-sm">
-                <div className="flex">
-                  <span className="font-medium text-gray-700 w-32">Monetary Cap:</span>
+            <Heart className="w-5 h-5 sm:w-6 sm:h-6 mt-1 flex-shrink-0" style={{ color: '#009193' }} />
+            <div className="flex-1 min-w-0">
+              <div className="space-y-2 text-xs sm:text-sm">
+                <div className="flex flex-col sm:flex-row">
+                  <span className="font-medium text-gray-700 sm:w-32 mb-1 sm:mb-0">Monetary Cap:</span>
                   <span className="text-gray-600">{program.monetary_cap}</span>
                 </div>
-                <div className="flex">
-                  <span className="font-medium text-gray-700 w-32">Description:</span>
-                  <span className="text-gray-600">{program.description}</span>
+                <div className="flex flex-col sm:flex-row">
+                  <span className="font-medium text-gray-700 sm:w-32 mb-1 sm:mb-0">Description:</span>
+                  <span className="text-gray-600 break-words">{program.description}</span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 self-start">
             <div
-              className={`px-4 py-2 rounded-lg font-semibold text-sm text-white ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm text-white whitespace-nowrap ${
                 program.program_status === 'open'
                   ? 'bg-green-500'
                   : program.program_status === 'waitlisted'
@@ -280,7 +280,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
             {enrollNow && (
               <button
                 onClick={() => handleEnrollNow(program)}
-                className="w-full text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                className="w-full text-white font-semibold py-2.5 sm:py-3 px-4 rounded-lg transition-colors text-sm sm:text-base"
                 style={{ backgroundColor: '#009193' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
@@ -449,30 +449,30 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
             {enrollment.status === 'completed' && patientDrug && (
                   <div className="space-y-4">
-                    <div className="bg-white border-2 border-green-500 rounded-lg p-6">
+                    <div className="bg-white border-2 border-green-500 rounded-lg p-4 sm:p-6">
                       <div className="flex items-center gap-2 mb-4">
-                        <DollarSign className="w-6 h-6 text-green-600" />
-                        <h3 className="text-lg font-semibold text-gray-800">Cost Summary</h3>
+                        <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-800">Cost Summary</h3>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-lg">
-                          <span className="text-sm font-medium text-gray-600">Total Drug Cost (Yearly)</span>
-                          <span className="text-xl font-bold text-gray-900">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        <div className="flex flex-col gap-1 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                          <span className="text-xs sm:text-sm font-medium text-gray-600">Total Drug Cost (Yearly)</span>
+                          <span className="text-lg sm:text-xl font-bold text-gray-900">
                             ${patientDrug.yearly_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
 
-                        <div className="flex flex-col gap-1 p-4 bg-green-50 rounded-lg">
-                          <span className="text-sm font-medium text-gray-600">Potential Saving</span>
-                          <span className="text-xl font-bold text-green-600">
+                        <div className="flex flex-col gap-1 p-3 sm:p-4 bg-green-50 rounded-lg">
+                          <span className="text-xs sm:text-sm font-medium text-gray-600">Potential Saving</span>
+                          <span className="text-lg sm:text-xl font-bold text-green-600">
                             ${calculatePotentialSaving(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
 
-                        <div className="flex flex-col gap-1 p-4 bg-blue-50 rounded-lg border-2 border-blue-500">
-                          <span className="text-sm font-semibold text-gray-700">Out of Pocket Cost</span>
-                          <span className="text-xl font-bold text-blue-600">
+                        <div className="flex flex-col gap-1 p-3 sm:p-4 bg-blue-50 rounded-lg border-2 border-blue-500 sm:col-span-2 lg:col-span-1">
+                          <span className="text-xs sm:text-sm font-semibold text-gray-700">Out of Pocket Cost</span>
+                          <span className="text-lg sm:text-xl font-bold text-blue-600">
                             ${calculateOutOfPocketCost(program).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -480,8 +480,8 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                     </div>
 
                     <div className="flex flex-col items-center">
-                      <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                        <Calendar className="w-5 h-5" style={{ color: '#009193' }} />
+                      <h4 className="text-sm sm:text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#009193' }} />
                         Refill Schedule
                       </h4>
                       <RefillCalendar
@@ -507,26 +507,26 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                 <div className="space-y-3">
                   <button
                     onClick={() => handleStatusChange(program, 'ongoing')}
-                    className="w-full flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <Clock className="w-5 h-5 text-orange-500" />
-                    <span className="font-medium text-gray-700">Ongoing</span>
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
+                    <span className="font-medium text-gray-700 text-sm sm:text-base">Ongoing</span>
                   </button>
 
                   <button
                     onClick={() => handleStatusChange(program, 'completed')}
-                    className="w-full flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    <span className="font-medium text-gray-700">Completed</span>
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                    <span className="font-medium text-gray-700 text-sm sm:text-base">Completed</span>
                   </button>
 
                   <button
                     onClick={() => handleStatusChange(program, 'rejected')}
-                    className="w-full flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <XCircle className="w-5 h-5 text-red-500" />
-                    <span className="font-medium text-gray-700">Rejected</span>
+                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 flex-shrink-0" />
+                    <span className="font-medium text-gray-700 text-sm sm:text-base">Rejected</span>
                   </button>
                 </div>
               </div>

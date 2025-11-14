@@ -88,7 +88,7 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
       days.push(
         <div key={day} className="aspect-square p-0.5">
           <div
-            className={`w-full h-full rounded flex flex-col items-center justify-center text-xs font-medium transition-colors ${
+            className={`w-full h-full rounded flex flex-col items-center justify-center text-[10px] sm:text-xs font-medium transition-colors ${
               reEnroll
                 ? 'bg-red-400 text-white'
                 : refill
@@ -108,20 +108,20 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-3 max-w-sm">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
+    <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 w-full max-w-sm mx-auto">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-2 gap-2">
+        <div className="flex items-center gap-1 order-2 sm:order-1">
           <button
             onClick={previousMonth}
             className="p-1 rounded hover:bg-gray-100 transition-colors"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={nextMonth}
             className="p-1 rounded hover:bg-gray-100 transition-colors"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={goToToday}
@@ -130,23 +130,23 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
             today
           </button>
         </div>
-        <div className="text-sm font-bold text-gray-800">
+        <div className="text-xs sm:text-sm font-bold text-gray-800 order-1 sm:order-2">
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-3 mb-2 text-xs">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-blue-500" />
+      <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-3 mb-2 text-[10px] sm:text-xs">
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-blue-500" />
           <span className="text-gray-600">Enrollment</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-yellow-400" />
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-yellow-400" />
           <span className="text-gray-600">Refill</span>
         </div>
         {reEnrollmentDate && (
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-red-400" />
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-red-400" />
             <span className="text-gray-600">Re-enroll</span>
           </div>
         )}
@@ -154,7 +154,7 @@ const RefillCalendar: React.FC<RefillCalendarProps> = ({ refillDate, reEnrollmen
 
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {dayNames.map(day => (
-          <div key={day} className="text-center text-xs font-semibold text-gray-600 py-1">
+          <div key={day} className="text-center text-[10px] sm:text-xs font-semibold text-gray-600 py-0.5 sm:py-1">
             {day}
           </div>
         ))}
