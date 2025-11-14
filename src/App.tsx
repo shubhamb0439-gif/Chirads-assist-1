@@ -146,6 +146,9 @@ const AppContent: React.FC = () => {
   const checkNotifications = async () => {
     if (!user) return;
 
+    // Providers should not see program notifications
+    if (user.user_role === 'provider') return;
+
     try {
       // First, trigger the re-enrollment date check
       await supabase.rpc('check_and_notify_re_enrollment_dates');
