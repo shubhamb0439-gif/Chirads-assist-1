@@ -15,10 +15,12 @@ interface PatientDrug {
 
 interface ProgramEnrollmentProps {
   onLogout: () => void;
+  selectedPatientId?: string | null;
 }
 
-const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
+const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout, selectedPatientId }) => {
   const { user } = useAuth();
+  const effectiveUserId = selectedPatientId || user?.id;
   const [programs, setPrograms] = useState<Program[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [patientDrug, setPatientDrug] = useState<PatientDrug | null>(null);
@@ -36,13 +38,13 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   }, [user]);
 
   const loadData = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       const patientProgramsRes = await supabase
         .from('patient_programs')
         .select('program_id')
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       const allowedProgramIds = patientProgramsRes.data?.map(pp => pp.program_id) || [];
 
@@ -56,8 +58,8 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
       const [programsRes, enrollmentsRes, patientDrugRes] = await Promise.all([
         programsQuery,
-        supabase.from('enrollments').select('*').eq('user_id', user.id),
-        supabase.from('patient_drugs').select('drug_id, refill_date, weekly_price, monthly_price, yearly_price').eq('user_id', user.id).maybeSingle(),
+        supabase.from('enrollments').select('*').eq('user_id', effectiveUserId),
+        supabase.from('patient_drugs').select('drug_id, refill_date, weekly_price, monthly_price, yearly_price').eq('user_id', effectiveUserId).maybeSingle(),
       ]);
 
       if (programsRes.data) setPrograms(programsRes.data);
@@ -99,7 +101,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   };
 
   const handleEnrollNow = async (program: Program) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       const enrolledAt = new Date().toISOString();
@@ -108,7 +110,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
       const { error } = await supabase
         .from('enrollments')
         .insert({
-          user_id: user.id,
+          user_id: effectiveUserId,
           program_id: program.id,
           status: 'enrolled',
           enrolled_at: enrolledAt,
@@ -130,7 +132,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
   };
 
   const handleStatusChange = async (program: Program, status: string) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     const enrollment = enrollments.find(e => e.program_id === program.id);
     if (!enrollment) return;
@@ -303,7 +305,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                       const { error } = await supabase
                         .from('enrollments')
                         .insert({
-                          user_id: user.id,
+                          user_id: effectiveUserId,
                           program_id: program.id,
                           status: 'ongoing',
                           enrolled_at: enrolledAt,
@@ -362,14 +364,14 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                 />
                 <button
                   onClick={async () => {
-                    if (!user || !completionDate) return;
+                    if (!effectiveUserId || !completionDate) return;
                     try {
                       const reEnrollmentDate = calculateReEnrollmentDate(program.renewal_period, completionDate);
 
                       const { error } = await supabase
                         .from('enrollments')
                         .insert({
-                          user_id: user.id,
+                          user_id: effectiveUserId,
                           program_id: program.id,
                           status: 'completed',
                           completion_date: completionDate,
@@ -408,7 +410,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                       const { error } = await supabase
                         .from('enrollments')
                         .insert({
-                          user_id: user.id,
+                          user_id: effectiveUserId,
                           program_id: program.id,
                           status: null,
                         });

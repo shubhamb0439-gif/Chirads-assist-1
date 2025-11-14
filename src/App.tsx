@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import PatientSelection from './pages/PatientSelection';
 import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
 import NotificationModal from './components/NotificationModal';
 import RefillNotificationModal from './components/RefillNotificationModal';
 import { supabase } from './lib/supabase';
 
-type Screen = 'login' | 'patientDetails' | 'programEnrollment';
+type Screen = 'login' | 'patientSelection' | 'patientDetails' | 'programEnrollment';
 
 interface Notification {
   id: string;
@@ -31,6 +32,7 @@ interface RefillNotification {
 const AppContent: React.FC = () => {
   const { user, logout, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -39,9 +41,13 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      checkUserEnrollment();
-      checkNotifications();
-      checkRefillNotifications();
+      if (user.user_role === 'provider' || user.user_role === 'scribe') {
+        setCurrentScreen('patientSelection');
+      } else {
+        checkUserEnrollment();
+        checkNotifications();
+        checkRefillNotifications();
+      }
     } else if (!loading && !user) {
       setCurrentScreen('login');
     }
@@ -234,8 +240,17 @@ const AppContent: React.FC = () => {
 
   const handleLoginSuccess = () => {
     if (user) {
-      checkUserEnrollment();
+      if (user.user_role === 'provider' || user.user_role === 'scribe') {
+        setCurrentScreen('patientSelection');
+      } else {
+        checkUserEnrollment();
+      }
     }
+  };
+
+  const handlePatientSelected = (patientId: string) => {
+    setSelectedPatientId(patientId);
+    setCurrentScreen('patientDetails');
   };
 
   const handlePatientDetailsNext = () => {
@@ -244,6 +259,7 @@ const AppContent: React.FC = () => {
 
   const handleLogout = () => {
     logout();
+    setSelectedPatientId(null);
     setCurrentScreen('login');
   };
 
@@ -259,14 +275,18 @@ const AppContent: React.FC = () => {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
+  if (currentScreen === 'patientSelection') {
+    return <PatientSelection onPatientSelected={handlePatientSelected} />;
+  }
+
   if (currentScreen === 'patientDetails') {
-    return <PatientDetails onNext={handlePatientDetailsNext} />;
+    return <PatientDetails onNext={handlePatientDetailsNext} selectedPatientId={selectedPatientId} />;
   }
 
   if (currentScreen === 'programEnrollment') {
     return (
       <>
-        <ProgramEnrollment onLogout={handleLogout} />
+        <ProgramEnrollment onLogout={handleLogout} selectedPatientId={selectedPatientId} />
         {showNotifications && user && (
           <NotificationModal
             notifications={notifications}

@@ -50,27 +50,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (fetchError) throw fetchError;
 
-      if (!existingUser) {
+      if (existingUser) {
+        if (existingUser.password === null) {
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ password })
+            .eq('id', existingUser.id);
+
+          if (updateError) throw updateError;
+
+          const updatedUser = { ...existingUser, password };
+          setUser(updatedUser);
+          localStorage.setItem('userId', updatedUser.id);
+          localStorage.setItem('userType', 'user');
+          return { success: true };
+        }
+
+        if (existingUser.password === password) {
+          setUser(existingUser);
+          localStorage.setItem('userId', existingUser.id);
+          localStorage.setItem('userType', 'user');
+          return { success: true };
+        } else {
+          return { success: false, error: 'Invalid password' };
+        }
+      }
+
+      const { data: existingProvider, error: providerError } = await supabase
+        .from('providers')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (providerError) throw providerError;
+
+      if (!existingProvider) {
         return { success: false, error: 'User not found' };
       }
 
-      if (existingUser.password === null) {
+      if (existingProvider.password === null) {
         const { error: updateError } = await supabase
-          .from('users')
+          .from('providers')
           .update({ password })
-          .eq('id', existingUser.id);
+          .eq('id', existingProvider.id);
 
         if (updateError) throw updateError;
 
-        const updatedUser = { ...existingUser, password };
-        setUser(updatedUser);
-        localStorage.setItem('userId', updatedUser.id);
+        const providerAsUser: User = {
+          id: existingProvider.id,
+          email: existingProvider.email,
+          password: password,
+          user_role: 'provider',
+          created_at: existingProvider.created_at
+        };
+
+        setUser(providerAsUser);
+        localStorage.setItem('userId', existingProvider.id);
+        localStorage.setItem('userType', 'provider');
         return { success: true };
       }
 
-      if (existingUser.password === password) {
-        setUser(existingUser);
-        localStorage.setItem('userId', existingUser.id);
+      if (existingProvider.password === password) {
+        const providerAsUser: User = {
+          id: existingProvider.id,
+          email: existingProvider.email,
+          password: existingProvider.password,
+          user_role: 'provider',
+          created_at: existingProvider.created_at
+        };
+
+        setUser(providerAsUser);
+        localStorage.setItem('userId', existingProvider.id);
+        localStorage.setItem('userType', 'provider');
         return { success: true };
       } else {
         return { success: false, error: 'Invalid password' };
@@ -84,6 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     localStorage.removeItem('userId');
+    localStorage.removeItem('userType');
   };
 
   return (

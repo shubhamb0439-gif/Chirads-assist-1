@@ -5,10 +5,12 @@ import { supabase, Clinic, Provider, Drug } from '../lib/supabase';
 
 interface PatientDetailsProps {
   onNext: () => void;
+  selectedPatientId?: string | null;
 }
 
-const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
+const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext, selectedPatientId }) => {
   const { user } = useAuth();
+  const effectiveUserId = selectedPatientId || user?.id;
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
@@ -38,16 +40,16 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   }, [userClinic, providers]);
 
   const loadData = async () => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       const [clinicsRes, providersRes, drugsRes, userClinicsRes, userProvidersRes, userDrugRes] = await Promise.all([
         supabase.from('clinics').select('*').order('name'),
         supabase.from('providers').select('*').order('name'),
         supabase.from('drugs').select('*').order('name'),
-        supabase.from('user_clinics').select('clinic_id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('user_providers').select('provider_id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('patient_drugs').select('drug_id').eq('user_id', user.id).maybeSingle(),
+        supabase.from('user_clinics').select('clinic_id').eq('user_id', effectiveUserId).maybeSingle(),
+        supabase.from('user_providers').select('provider_id').eq('user_id', effectiveUserId).maybeSingle(),
+        supabase.from('patient_drugs').select('drug_id').eq('user_id', effectiveUserId).maybeSingle(),
       ]);
 
       if (clinicsRes.data) setClinics(clinicsRes.data);
@@ -86,17 +88,17 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleAddClinic = async (clinicId: string, isNewClinic: boolean = false) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       await supabase
         .from('user_clinics')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       const { error } = await supabase
         .from('user_clinics')
-        .insert({ user_id: user.id, clinic_id: clinicId });
+        .insert({ user_id: effectiveUserId, clinic_id: clinicId });
 
       if (error) throw error;
       setUserClinic(clinicId);
@@ -106,20 +108,20 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
       await supabase
         .from('user_providers')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
     } catch (error) {
       console.error('Error adding clinic:', error);
     }
   };
 
   const handleRemoveClinic = async () => {
-    if (!user || !userClinic) return;
+    if (!effectiveUserId || !userClinic) return;
 
     try {
       const { error } = await supabase
         .from('user_clinics')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .eq('clinic_id', userClinic);
 
       if (error) throw error;
@@ -131,17 +133,17 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleAddProvider = async (providerId: string) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       await supabase
         .from('user_providers')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       const { error } = await supabase
         .from('user_providers')
-        .insert({ user_id: user.id, provider_id: providerId });
+        .insert({ user_id: effectiveUserId, provider_id: providerId });
 
       if (error) throw error;
       setUserProvider(providerId);
@@ -151,13 +153,13 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleRemoveProvider = async () => {
-    if (!user || !userProvider) return;
+    if (!effectiveUserId || !userProvider) return;
 
     try {
       const { error } = await supabase
         .from('user_providers')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .eq('provider_id', userProvider);
 
       if (error) throw error;
@@ -168,7 +170,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleCreateClinic = async () => {
-    if (!user || !newClinicName.trim()) return;
+    if (!effectiveUserId || !newClinicName.trim()) return;
 
     try {
       const { data: newClinic, error: insertError } = await supabase
@@ -190,7 +192,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleCreateProvider = async () => {
-    if (!user || !newProviderName.trim()) return;
+    if (!effectiveUserId || !newProviderName.trim()) return;
 
     try {
       const { data: newProvider, error: insertError } = await supabase
@@ -212,13 +214,13 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleAddDrug = async (drugId: string) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
 
     try {
       await supabase
         .from('patient_drugs')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', effectiveUserId);
 
       const selectedDrug = drugs.find(d => d.id === drugId);
       if (!selectedDrug) return;
@@ -226,7 +228,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
       const { error } = await supabase
         .from('patient_drugs')
         .insert({
-          user_id: user.id,
+          user_id: effectiveUserId,
           drug_id: selectedDrug.id,
           weekly_price: selectedDrug.weekly_price,
           monthly_price: selectedDrug.monthly_price,
@@ -241,13 +243,13 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleRemoveDrug = async () => {
-    if (!user || !userDrug) return;
+    if (!effectiveUserId || !userDrug) return;
 
     try {
       const { error } = await supabase
         .from('patient_drugs')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUserId)
         .eq('drug_id', userDrug);
 
       if (error) throw error;
@@ -258,7 +260,7 @@ const PatientDetails: React.FC<PatientDetailsProps> = ({ onNext }) => {
   };
 
   const handleCreateDrug = async () => {
-    if (!user || !newDrugName.trim()) return;
+    if (!effectiveUserId || !newDrugName.trim()) return;
 
     try {
       const { data: newDrug, error: insertError } = await supabase

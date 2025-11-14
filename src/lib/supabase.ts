@@ -9,6 +9,7 @@ export interface User {
   id: string;
   email: string;
   password: string | null;
+  user_role: 'patient' | 'provider' | 'scribe';
   created_at: string;
 }
 
@@ -21,6 +22,8 @@ export interface Clinic {
 export interface Provider {
   id: string;
   name: string;
+  email: string;
+  password: string | null;
   created_at: string;
 }
 
