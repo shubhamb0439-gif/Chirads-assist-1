@@ -60,6 +60,9 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
+    // Determine which user ID to listen for notifications
+    const targetUserId = (user.user_role === 'scribe' && selectedPatientId) ? selectedPatientId : user.id;
+
     const programChannel = supabase
       .channel('program_notifications')
       .on(
@@ -68,7 +71,7 @@ const AppContent: React.FC = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'program_notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${targetUserId}`,
         },
         (payload) => {
           const newNotification = payload.new as Notification;
@@ -86,7 +89,7 @@ const AppContent: React.FC = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'refill_notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${targetUserId}`,
         },
         async (payload) => {
           const newRefillNotification = payload.new as any;
@@ -116,7 +119,7 @@ const AppContent: React.FC = () => {
       supabase.removeChannel(programChannel);
       supabase.removeChannel(refillChannel);
     };
-  }, [user]);
+  }, [user, selectedPatientId]);
 
   const checkUserEnrollment = async () => {
     if (!user) return;
@@ -149,6 +152,9 @@ const AppContent: React.FC = () => {
     // Providers should not see program notifications
     if (user.user_role === 'provider') return;
 
+    // Determine which user ID to check notifications for
+    const targetUserId = (user.user_role === 'scribe' && selectedPatientId) ? selectedPatientId : user.id;
+
     try {
       // First, trigger the re-enrollment date check
       await supabase.rpc('check_and_notify_re_enrollment_dates');
@@ -157,7 +163,7 @@ const AppContent: React.FC = () => {
       const { data, error } = await supabase
         .from('program_notifications')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('is_read', false)
         .order('created_at', { ascending: false });
 
@@ -175,6 +181,9 @@ const AppContent: React.FC = () => {
   const checkRefillNotifications = async () => {
     if (!user) return;
 
+    // Determine which user ID to check notifications for
+    const targetUserId = (user.user_role === 'scribe' && selectedPatientId) ? selectedPatientId : user.id;
+
     try {
       // Trigger the refill date check
       await supabase.rpc('check_and_notify_refill_dates');
@@ -190,7 +199,7 @@ const AppContent: React.FC = () => {
           created_at,
           drugs(name)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('is_read', false)
         .order('days_remaining', { ascending: true });
 
@@ -309,6 +318,13 @@ const AppContent: React.FC = () => {
   const handlePatientSelected = (patientId: string) => {
     setSelectedPatientId(patientId);
     setCurrentScreen('patientDetails');
+    // Check notifications for the selected patient if scribe
+    if (user?.user_role === 'scribe') {
+      setTimeout(() => {
+        checkNotifications();
+        checkRefillNotifications();
+      }, 100);
+    }
   };
 
   const handleScribeManageData = () => {
