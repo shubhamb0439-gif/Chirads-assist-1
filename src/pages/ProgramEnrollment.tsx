@@ -431,26 +431,21 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
         {enrollment && (
           <div className="mt-6 space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium">
-                You are enrolled in this program
-              </p>
-              {enrollment.status && (
+            {enrollment.status === 'completed' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-green-800 font-medium">
+                  You are enrolled in this program
+                </p>
                 <p className="text-green-700 text-sm mt-1">
-                  Status: <span className="capitalize">{enrollment.status}</span>
+                  Status: <span className="capitalize">Completed</span>
                 </p>
-              )}
-              {enrollment.status === null && (
-                <p className="text-red-700 text-sm mt-1">
-                  Status: <span className="capitalize">Rejected</span>
-                </p>
-              )}
-              {enrollment.completion_date && (
-                <p className="text-green-700 text-sm mt-1">
-                  Completion Date: {new Date(enrollment.completion_date).toLocaleDateString()}
-                </p>
-              )}
-            </div>
+                {enrollment.completion_date && (
+                  <p className="text-green-700 text-sm mt-1">
+                    Completion Date: {new Date(enrollment.completion_date).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
 
             {enrollment.status === 'completed' && patientDrug && (
                   <div className="space-y-4">
@@ -508,7 +503,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
 
             {(enrollment.status === 'ongoing' || enrollment.status === 'enrolled') && isProgramOpen && (
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-3">Update Status:</p>
+                <p className="text-sm font-medium text-gray-700 mb-3">Update your enrollment status</p>
                 <div className="space-y-3">
                   <button
                     onClick={() => handleStatusChange(program, 'ongoing')}
