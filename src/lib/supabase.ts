@@ -27,11 +27,11 @@ export interface Provider {
 export interface Program {
   id: string;
   name: string;
-  sponsor: string;
   monetary_cap: string;
   description: string;
   enrollment_link: string;
   program_status: string;
+  renewal_period: string;
   re_enrollment_date: string | null;
   created_at: string;
 }
@@ -44,6 +44,7 @@ export interface Enrollment {
   completion_date: string | null;
   enrolled_at: string;
   updated_at: string;
+  re_enrollment_date: string | null;
 }
 
 export interface Drug {

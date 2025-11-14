@@ -78,16 +78,40 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
     setCompletionDate('');
   };
 
+  const calculateReEnrollmentDate = (renewalPeriod: string, enrolledAt: string): string | null => {
+    const enrollmentDate = new Date(enrolledAt);
+
+    if (renewalPeriod === 'never') {
+      return null;
+    } else if (renewalPeriod === 'calendar years' || renewalPeriod === 'calendar year') {
+      const nextYear = enrollmentDate.getFullYear() + 1;
+      return `${nextYear}-01-01`;
+    } else {
+      const days = parseInt(renewalPeriod);
+      if (!isNaN(days)) {
+        const reEnrollmentDate = new Date(enrollmentDate);
+        reEnrollmentDate.setDate(enrollmentDate.getDate() + days);
+        return reEnrollmentDate.toISOString().split('T')[0];
+      }
+    }
+    return null;
+  };
+
   const handleEnrollNow = async (program: Program) => {
     if (!user) return;
 
     try {
+      const enrolledAt = new Date().toISOString();
+      const reEnrollmentDate = calculateReEnrollmentDate(program.renewal_period, enrolledAt);
+
       const { error } = await supabase
         .from('enrollments')
         .insert({
           user_id: user.id,
           program_id: program.id,
           status: 'enrolled',
+          enrolled_at: enrolledAt,
+          re_enrollment_date: reEnrollmentDate,
         });
 
       if (error) throw error;
@@ -142,11 +166,14 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
     if (!enrollment) return;
 
     try {
+      const reEnrollmentDate = calculateReEnrollmentDate(program.renewal_period, completionDate);
+
       const { error } = await supabase
         .from('enrollments')
         .update({
           status: 'completed',
           completion_date: completionDate,
+          re_enrollment_date: reEnrollmentDate,
           updated_at: new Date().toISOString(),
         })
         .eq('id', enrollment.id);
@@ -206,10 +233,6 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
             <Heart className="w-6 h-6 mt-1" style={{ color: '#009193' }} />
             <div className="flex-1">
               <div className="space-y-2 text-sm">
-                <div className="flex">
-                  <span className="font-medium text-gray-700 w-32">Sponsor:</span>
-                  <span className="text-gray-600">{program.sponsor}</span>
-                </div>
                 <div className="flex">
                   <span className="font-medium text-gray-700 w-32">Monetary Cap:</span>
                   <span className="text-gray-600">{program.monetary_cap}</span>
@@ -275,12 +298,17 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                 onChange={async (e) => {
                   if (e.target.checked) {
                     try {
+                      const enrolledAt = new Date().toISOString();
+                      const reEnrollmentDate = calculateReEnrollmentDate(program.renewal_period, enrolledAt);
+
                       const { error } = await supabase
                         .from('enrollments')
                         .insert({
                           user_id: user.id,
                           program_id: program.id,
                           status: 'ongoing',
+                          enrolled_at: enrolledAt,
+                          re_enrollment_date: reEnrollmentDate,
                         });
                       if (error) throw error;
                       await loadData();
@@ -336,6 +364,8 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                   onClick={async () => {
                     if (!user || !completionDate) return;
                     try {
+                      const reEnrollmentDate = calculateReEnrollmentDate(program.renewal_period, completionDate);
+
                       const { error } = await supabase
                         .from('enrollments')
                         .insert({
@@ -343,6 +373,8 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                           program_id: program.id,
                           status: 'completed',
                           completion_date: completionDate,
+                          enrolled_at: completionDate,
+                          re_enrollment_date: reEnrollmentDate,
                         });
                       if (error) throw error;
                       await loadData();
@@ -469,7 +501,7 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                       </h4>
                       <RefillCalendar
                         refillDate={getDummyRefillDate()}
-                        reEnrollmentDate={program.re_enrollment_date}
+                        reEnrollmentDate={enrollment.re_enrollment_date}
                       />
                     </div>
                   </div>
@@ -595,7 +627,6 @@ const ProgramEnrollment: React.FC<ProgramEnrollmentProps> = ({ onLogout }) => {
                       <div className="font-semibold text-base sm:text-lg" style={{ color: '#531B93' }}>
                         {program.name}
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">{program.sponsor}</div>
                     </button>
                     {selectedProgramId === program.id && (
                       <div className="px-4 sm:px-6 pb-4">
