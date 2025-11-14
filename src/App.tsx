@@ -3,18 +3,31 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import PatientDetails from './pages/PatientDetails';
 import ProgramEnrollment from './pages/ProgramEnrollment';
+import NotificationModal from './components/NotificationModal';
 import { supabase } from './lib/supabase';
 
 type Screen = 'login' | 'patientDetails' | 'programEnrollment';
+
+interface Notification {
+  id: string;
+  message: string;
+  program_id: string;
+  old_status: string | null;
+  new_status: string;
+  created_at: string;
+}
 
 const AppContent: React.FC = () => {
   const { user, logout, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       checkUserEnrollment();
+      checkNotifications();
     } else if (!loading && !user) {
       setCurrentScreen('login');
     }
@@ -42,6 +55,48 @@ const AppContent: React.FC = () => {
       setCurrentScreen('patientDetails');
     } finally {
       setCheckingEnrollment(false);
+    }
+  };
+
+  const checkNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('program_notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setNotifications(data);
+        setShowNotifications(true);
+      }
+    } catch (error) {
+      console.error('Error checking notifications:', error);
+    }
+  };
+
+  const handleCloseNotifications = async () => {
+    if (!user || notifications.length === 0) return;
+
+    try {
+      const notificationIds = notifications.map(n => n.id);
+      const { error } = await supabase
+        .from('program_notifications')
+        .update({ is_read: true })
+        .in('id', notificationIds);
+
+      if (error) throw error;
+
+      setShowNotifications(false);
+      setNotifications([]);
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      setShowNotifications(false);
     }
   };
 
@@ -77,7 +132,17 @@ const AppContent: React.FC = () => {
   }
 
   if (currentScreen === 'programEnrollment') {
-    return <ProgramEnrollment onLogout={handleLogout} />;
+    return (
+      <>
+        <ProgramEnrollment onLogout={handleLogout} />
+        {showNotifications && (
+          <NotificationModal
+            notifications={notifications}
+            onClose={handleCloseNotifications}
+          />
+        )}
+      </>
+    );
   }
 
   return null;
