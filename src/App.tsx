@@ -257,6 +257,40 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleCompleteRefill = async (drugIds: string[]) => {
+    if (!user || drugIds.length === 0) return;
+
+    try {
+      const today = new Date();
+      const nextRefillDate = new Date(today);
+      nextRefillDate.setDate(today.getDate() + 30);
+
+      const { error: updateError } = await supabase
+        .from('patient_drugs')
+        .update({ refill_date: nextRefillDate.toISOString().split('T')[0] })
+        .in('drug_id', drugIds)
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      const notificationIds = refillNotifications.map(n => n.id);
+      const { error: markError } = await supabase
+        .from('refill_notifications')
+        .update({ is_read: true })
+        .in('id', notificationIds);
+
+      if (markError) throw markError;
+
+      setShowRefillNotifications(false);
+      setRefillNotifications([]);
+      setToast({ message: 'Refill date updated to 30 days from today', type: 'success' });
+    } catch (error) {
+      console.error('Error completing refill:', error);
+      setToast({ message: 'Failed to update refill date', type: 'error' });
+      setShowRefillNotifications(false);
+    }
+  };
+
   const handleLoginSuccess = () => {
     if (user) {
       if (user.user_role === 'scribe') {
@@ -360,6 +394,7 @@ const AppContent: React.FC = () => {
           <RefillNotificationModal
             notifications={refillNotifications}
             onClose={handleCloseRefillNotifications}
+            onComplete={handleCompleteRefill}
           />
         )}
       </>

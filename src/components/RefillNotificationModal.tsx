@@ -14,11 +14,13 @@ interface RefillNotification {
 interface RefillNotificationModalProps {
   notifications: RefillNotification[];
   onClose: () => void;
+  onComplete: (drugIds: string[]) => void;
 }
 
 const RefillNotificationModal: React.FC<RefillNotificationModalProps> = ({
   notifications,
-  onClose
+  onClose,
+  onComplete
 }) => {
   if (notifications.length === 0) return null;
 
@@ -28,7 +30,7 @@ const RefillNotificationModal: React.FC<RefillNotificationModalProps> = ({
     return `${days} days`;
   };
 
-  const handleMarkAsRead = async () => {
+  const handleGotIt = async () => {
     try {
       const notificationIds = notifications.map(n => n.id);
       const { error } = await supabase
@@ -45,6 +47,11 @@ const RefillNotificationModal: React.FC<RefillNotificationModalProps> = ({
     }
   };
 
+  const handleComplete = async () => {
+    const drugIds = notifications.map(n => n.drug_id);
+    onComplete(drugIds);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
       <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[85vh] sm:max-h-[80vh] overflow-hidden">
@@ -54,7 +61,7 @@ const RefillNotificationModal: React.FC<RefillNotificationModalProps> = ({
             <h2 className="text-base sm:text-xl font-bold text-white">Refill Reminders</h2>
           </div>
           <button
-            onClick={handleMarkAsRead}
+            onClick={handleGotIt}
             className="text-white hover:bg-white/20 rounded-full p-1 transition-colors flex-shrink-0"
           >
             <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -107,9 +114,15 @@ const RefillNotificationModal: React.FC<RefillNotificationModalProps> = ({
           })}
         </div>
 
-        <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-200">
+        <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-200 space-y-2">
           <button
-            onClick={handleMarkAsRead}
+            onClick={handleComplete}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 sm:py-2 px-4 rounded-lg transition-colors text-sm sm:text-base"
+          >
+            Completed
+          </button>
+          <button
+            onClick={handleGotIt}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 sm:py-2 px-4 rounded-lg transition-colors text-sm sm:text-base"
           >
             Got it!
