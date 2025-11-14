@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Building2, Pill, Calendar, FileText, TrendingUp, UserSquare2 } from 'lucide-react';
+import { Users, Building2, Pill, Calendar, FileText, UserSquare2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { supabase, User as DBUser, Clinic, Provider } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface DashboardStats {
   totalPatients: number;
@@ -13,11 +13,11 @@ interface DashboardStats {
 }
 
 interface ScribeDashboardProps {
-  onPatientSelect: (patientId: string) => void;
+  onManageData: () => void;
   onLogout: () => void;
 }
 
-const ScribeDashboard: React.FC<ScribeDashboardProps> = ({ onPatientSelect, onLogout }) => {
+const ScribeDashboard: React.FC<ScribeDashboardProps> = ({ onManageData, onLogout }) => {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalPatients: 0,
@@ -27,9 +27,6 @@ const ScribeDashboard: React.FC<ScribeDashboardProps> = ({ onPatientSelect, onLo
     upcomingRefills: 0,
     activePrograms: 0,
   });
-  const [patients, setPatients] = useState<DBUser[]>([]);
-  const [clinics, setClinics] = useState<Clinic[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,17 +45,14 @@ const ScribeDashboard: React.FC<ScribeDashboardProps> = ({ onPatientSelect, onLo
       ] = await Promise.all([
         supabase
           .from('users')
-          .select('*')
-          .eq('user_role', 'patient')
-          .order('email'),
+          .select('id')
+          .eq('user_role', 'patient'),
         supabase
           .from('clinics')
-          .select('*')
-          .order('name'),
+          .select('id'),
         supabase
           .from('providers')
-          .select('*')
-          .order('name'),
+          .select('id'),
         supabase
           .from('patient_drugs')
           .select('drug_id'),
@@ -71,10 +65,6 @@ const ScribeDashboard: React.FC<ScribeDashboardProps> = ({ onPatientSelect, onLo
           .from('enrollments')
           .select('program_id'),
       ]);
-
-      setPatients(patientsRes.data || []);
-      setClinics(clinicsRes.data || []);
-      setProviders(providersRes.data || []);
 
       const uniqueDrugs = new Set(drugsRes.data?.map(d => d.drug_id) || []);
       const uniquePrograms = new Set(programsRes.data?.map(p => p.program_id) || []);
@@ -193,94 +183,27 @@ const ScribeDashboard: React.FC<ScribeDashboardProps> = ({ onPatientSelect, onLo
             })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="border border-gray-200 rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Building2 className="w-6 h-6" style={{ color: '#009193' }} />
-                <h2 className="text-xl font-semibold" style={{ color: '#531B93' }}>
-                  Clinics Overview
-                </h2>
-              </div>
-              {clinics.length === 0 ? (
-                <p className="text-gray-500">No clinics available.</p>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {clinics.map((clinic) => (
-                    <div
-                      key={clinic.id}
-                      className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <p className="font-medium text-gray-800">{clinic.name}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="border border-gray-200 rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <UserSquare2 className="w-6 h-6" style={{ color: '#009193' }} />
-                <h2 className="text-xl font-semibold" style={{ color: '#531B93' }}>
-                  Providers Overview
-                </h2>
-              </div>
-              {providers.length === 0 ? (
-                <p className="text-gray-500">No providers available.</p>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {providers.map((provider) => (
-                    <div
-                      key={provider.id}
-                      className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <p className="font-medium text-gray-800">{provider.name}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           <div className="border-t border-gray-200 pt-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Users className="w-6 h-6" style={{ color: '#009193' }} />
-              <h2 className="text-xl sm:text-2xl font-semibold" style={{ color: '#531B93' }}>
-                All Patients
-              </h2>
+            <div className="text-center py-12">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2" style={{ color: '#531B93' }}>
+                  Manage Clinic Data
+                </h2>
+                <p className="text-gray-600">
+                  Add and manage clinics, providers, patients, and drug information
+                </p>
+              </div>
+              <button
+                onClick={onManageData}
+                className="inline-flex items-center gap-3 text-white font-semibold px-8 py-4 rounded-xl transition-all transform hover:scale-105"
+                style={{ backgroundColor: '#009193' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#007b7d'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#009193'}
+              >
+                Go to Data Management
+                <ArrowRight className="w-5 h-5" />
+              </button>
             </div>
-
-            {patients.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-xl">
-                <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500 text-lg">No patients in the system yet.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {patients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    onClick={() => onPatientSelect(patient.id)}
-                    className="border-2 border-gray-200 rounded-xl p-5 hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-800 text-lg group-hover:text-blue-600 transition-colors">
-                          {patient.email}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Joined: {new Date(patient.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div
-                        className="p-2 rounded-full bg-gray-100 group-hover:bg-blue-100 transition-colors"
-                      >
-                        <Users className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

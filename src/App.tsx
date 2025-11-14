@@ -259,8 +259,7 @@ const AppContent: React.FC = () => {
     setCurrentScreen('patientDetails');
   };
 
-  const handleScribePatientSelected = (patientId: string) => {
-    setSelectedPatientId(patientId);
+  const handleScribeManageData = () => {
     setCurrentScreen('scribeInterface');
   };
 
@@ -306,7 +305,7 @@ const AppContent: React.FC = () => {
   }
 
   if (currentScreen === 'scribeDashboard') {
-    return <ScribeDashboard onPatientSelect={handleScribePatientSelected} onLogout={handleLogout} />;
+    return <ScribeDashboard onManageData={handleScribeManageData} onLogout={handleLogout} />;
   }
 
   if (currentScreen === 'scribeInterface') {
