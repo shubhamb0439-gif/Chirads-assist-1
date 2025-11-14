@@ -57,6 +57,16 @@ const AppContent: React.FC = () => {
     }
   }, [user, loading]);
 
+  // Check notifications when scribe/provider selects a patient
+  useEffect(() => {
+    if (!user || !selectedPatientId) return;
+
+    if (user.user_role === 'scribe' || user.user_role === 'provider') {
+      checkNotifications();
+      checkRefillNotifications();
+    }
+  }, [selectedPatientId]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -318,13 +328,6 @@ const AppContent: React.FC = () => {
   const handlePatientSelected = (patientId: string) => {
     setSelectedPatientId(patientId);
     setCurrentScreen('patientDetails');
-    // Check notifications for the selected patient if scribe
-    if (user?.user_role === 'scribe') {
-      setTimeout(() => {
-        checkNotifications();
-        checkRefillNotifications();
-      }, 100);
-    }
   };
 
   const handleScribeManageData = () => {
