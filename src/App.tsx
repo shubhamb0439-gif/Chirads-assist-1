@@ -89,6 +89,10 @@ const AppContent: React.FC = () => {
     if (!user) return;
 
     try {
+      // First, trigger the re-enrollment date check
+      await supabase.rpc('check_and_notify_re_enrollment_dates');
+
+      // Then fetch all unread notifications
       const { data, error } = await supabase
         .from('program_notifications')
         .select('*')

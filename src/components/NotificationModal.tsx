@@ -48,7 +48,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, on
     try {
       const { data: programData, error: programError } = await supabase
         .from('programs')
-        .select('renewal_period')
+        .select('renewal_period, enrollment_link')
         .eq('id', notification.program_id)
         .maybeSingle();
 
@@ -57,21 +57,46 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ notifications, on
       const enrolledAt = new Date().toISOString();
       const reEnrollmentDate = calculateReEnrollmentDate(programData?.renewal_period || null, enrolledAt);
 
-      const { error } = await supabase
+      // Check if there's an existing enrollment (for re-enrollment case)
+      const { data: existingEnrollment } = await supabase
         .from('enrollments')
-        .insert({
-          user_id: userId,
-          program_id: notification.program_id,
-          status: 'enrolled',
-          enrolled_at: enrolledAt,
-          re_enrollment_date: reEnrollmentDate,
-        });
+        .select('id')
+        .eq('user_id', userId)
+        .eq('program_id', notification.program_id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingEnrollment) {
+        // Update existing enrollment for re-enrollment
+        const { error } = await supabase
+          .from('enrollments')
+          .update({
+            status: 'enrolled',
+            enrolled_at: enrolledAt,
+            re_enrollment_date: reEnrollmentDate,
+            completion_date: null,
+            updated_at: enrolledAt,
+          })
+          .eq('id', existingEnrollment.id);
 
-      if (notification.enrollment_link) {
-        window.open(notification.enrollment_link, '_blank');
+        if (error) throw error;
+      } else {
+        // Create new enrollment
+        const { error } = await supabase
+          .from('enrollments')
+          .insert({
+            user_id: userId,
+            program_id: notification.program_id,
+            status: 'enrolled',
+            enrolled_at: enrolledAt,
+            re_enrollment_date: reEnrollmentDate,
+          });
+
+        if (error) throw error;
       }
+
+      // Open enrollment link
+      const enrollmentLink = programData?.enrollment_link || 'https://portal.copays.org/#/register';
+      window.open(enrollmentLink, '_blank');
 
       onClose();
 
