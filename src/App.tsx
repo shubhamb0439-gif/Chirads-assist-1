@@ -179,8 +179,9 @@ const AppContent: React.FC = () => {
 
       if (error) throw error;
 
+      // Always set the notifications, even if empty (clears previous patient's notifications)
+      setNotifications(data || []);
       if (data && data.length > 0) {
-        setNotifications(data);
         setShowNotifications(true);
       }
     } catch (error) {
@@ -224,8 +225,12 @@ const AppContent: React.FC = () => {
           created_at: item.created_at,
           drug_name: (item.drugs as any)?.name
         }));
+        // Always replace (not append) to avoid duplicates
         setRefillNotifications(formattedData);
         setShowRefillNotifications(true);
+      } else {
+        // Clear notifications if there are none for this patient
+        setRefillNotifications([]);
       }
     } catch (error) {
       console.error('Error checking refill notifications:', error);
@@ -336,6 +341,11 @@ const AppContent: React.FC = () => {
 
   const handleBackToDashboard = () => {
     setSelectedPatientId(null);
+    // Clear notifications when going back
+    setNotifications([]);
+    setRefillNotifications([]);
+    setShowNotifications(false);
+    setShowRefillNotifications(false);
     if (user?.user_role === 'provider') {
       setCurrentScreen('providerDashboard');
     } else if (user?.user_role === 'scribe') {
@@ -345,6 +355,11 @@ const AppContent: React.FC = () => {
 
   const handleBackToScribeDashboard = () => {
     setSelectedPatientId(null);
+    // Clear notifications when going back
+    setNotifications([]);
+    setRefillNotifications([]);
+    setShowNotifications(false);
+    setShowRefillNotifications(false);
     setCurrentScreen('scribeDashboard');
   };
 
